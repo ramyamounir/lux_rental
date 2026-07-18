@@ -1,5 +1,7 @@
 # Luxembourg Rental Explorer
 
+Viewable at [https://ramyamounir.github.io/lux_rental](https://ramyamounir.github.io/lux_rental)
+
 An interactive map for comparing Luxembourg's 100 communes and Luxembourg City's 24
 quartiers on affordability, transit connectivity, amenities, and safety/reputation —
 built to help with deciding where to rent.
@@ -37,38 +39,6 @@ No build step. Either:
 - Open `index.html` directly in a browser, or
 - Serve the folder locally, e.g. `python3 -m http.server`, then visit `http://localhost:8000`
 
-## Publishing on GitHub Pages
-
-1. **Create a repository.** On GitHub, click *New repository*, name it (e.g.
-   `lux-rental-explorer`), and create it — public, no README/license needed since
-   you already have files.
-
-2. **Push this folder to it.** From inside this folder:
-
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git branch -M main
-   git remote add origin https://github.com/<your-username>/<your-repo>.git
-   git push -u origin main
-   ```
-
-3. **Turn on Pages.** In the repository on GitHub: **Settings → Pages**. Under
-   *Build and deployment* → *Source*, choose **Deploy from a branch**. Under
-   *Branch*, choose **main** and folder **/ (root)**, then **Save**.
-
-4. **Wait a minute**, then your site is live at:
-
-   ```
-   https://<your-username>.github.io/<your-repo>/
-   ```
-
-   GitHub shows the exact URL at the top of the Pages settings once it's built.
-
-That's it — no backend, database, or API keys involved; everything the map needs
-ships in the repo itself.
-
 ## Updating the data later
 
 1. Edit the relevant file(s) in `/data`.
@@ -92,9 +62,3 @@ print('data.js regenerated')
 3. Update the vintage/source notes in `methodology.html` if the change affects them.
 4. Commit and push — GitHub Pages redeploys automatically within a minute or two.
 
-## License / attribution
-
-No license file included — add one (e.g. MIT) if you want to make reuse terms
-explicit. This project bundles data derived from STATEC, the Observatoire de
-l'Habitat, CFL, the Luxembourg government, Numbeo, Immotop.lu, and Google Places;
-see `methodology.html` for the specific source and terms of each.
