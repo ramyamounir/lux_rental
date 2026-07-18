@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data &amp; Methodology — Luxembourg Rental Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body{ overflow-y:auto; }
+  .doc{
+    max-width:760px;
+    margin:0 auto;
+    padding:40px 20px 90px 20px;
+  }
+  .doc-header{
+    border-bottom:1px solid var(--hairline);
+    padding-bottom:20px;
+    margin-bottom:32px;
+  }
+  .doc-header a.back{
+    font-size:12px;
+    color:var(--text-dim);
+    text-decoration:underline;
+    text-decoration-color:var(--hairline);
+  }
+  .doc-header a.back:hover{ color:var(--gold-bright); }
+  .doc h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:30px;
+    margin:16px 0 6px 0;
+    color:var(--text);
+  }
+  .doc .subtitle{ color:var(--text-dim); font-size:14px; line-height:1.6; }
+  .doc h2{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:20px;
+    color:var(--gold-bright);
+    margin:40px 0 4px 0;
+  }
+  .doc h2 .n{
+    font-family:'IBM Plex Mono';
+    font-size:13px;
+    color:var(--text-dimmer);
+    margin-right:8px;
+  }
+  .doc h3{
+    font-family:'IBM Plex Sans';
+    font-weight:600;
+    font-size:14px;
+    color:var(--text);
+    margin:22px 0 6px 0;
+  }
+  .doc p{ line-height:1.7; color:var(--text-dim); font-size:14px; margin:10px 0; }
+  .doc a{ color:var(--gold-bright); }
+  .doc code{
+    font-family:'IBM Plex Mono';
+    font-size:12.5px;
+    background:var(--panel-3);
+    padding:1px 5px;
+    border-radius:4px;
+    color:var(--gold-bright);
+  }
+  .doc ul, .doc ol{ color:var(--text-dim); font-size:14px; line-height:1.7; padding-left:20px; }
+  .doc li{ margin:4px 0; }
+  .callout{
+    background:var(--panel-2);
+    border:1px solid var(--hairline);
+    border-left:3px solid var(--gold);
+    border-radius:6px;
+    padding:12px 14px;
+    margin:14px 0;
+    font-size:13px;
+    color:var(--text-dim);
+    line-height:1.6;
+  }
+  .callout.warn{ border-left-color:var(--red-flag, #b6533f); }
+  .callout b{ color:var(--text); }
+  table.datatable{
+    width:100%;
+    border-collapse:collapse;
+    margin:14px 0;
+    font-size:12.5px;
+  }
+  table.datatable th{
+    text-align:left;
+    font-family:'IBM Plex Sans';
+    font-weight:600;
+    color:var(--text-dimmer);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    font-size:10.5px;
+    padding:6px 8px;
+    border-bottom:1px solid var(--hairline);
+  }
+  table.datatable td{
+    padding:8px;
+    border-bottom:1px solid var(--hairline);
+    color:var(--text-dim);
+    vertical-align:top;
+  }
+  table.datatable td.lbl{ color:var(--text); font-weight:500; white-space:nowrap; }
+  .doc footer{
+    margin-top:50px;
+    padding-top:16px;
+    border-top:1px solid var(--hairline);
+    font-size:11.5px;
+    color:var(--text-dimmer);
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="doc-header">
+    <a class="back" href="index.html">&larr; Back to the map</a>
+    <h1>Data &amp; Methodology</h1>
+    <p class="subtitle">What every layer in the Luxembourg Rental Explorer is actually built from, how each score is calculated, and — just as important — what isn't real data. Nothing here is official government output; treat every number as a starting point for your own research, not a verdict.</p>
+  </div>
+
+  <h2><span class="n">01</span>Boundaries</h2>
+  <p>Country view uses simplified commune polygons (originally OpenStreetMap-derived, via a public GeoJSON mirror), dissolved and merged where communes have since amalgamated so the map matches the current 100 official communes. These are simplified for size and speed, not survey-accurate.</p>
+  <p>City view (Luxembourg City's 24 quartiers) does <b>not</b> use the official VDL quartier polygons — that data exists on the city's ArcGIS server but wasn't retrievable through the tools available while building this. Instead, quartier areas are a <b>Voronoi tessellation</b>: a diagram built from each quartier's real center point, divided so every point on the map belongs to whichever quartier center is nearest, then clipped to the real city outline. It tiles the whole city with no gaps, and areas roughly track real quartier sizes, but the actual boundary lines are a geometric approximation, not the legal ones.</p>
+
+  <h2><span class="n">02</span>Affordability</h2>
+  <p>Real price data, two sources depending on zoom level:</p>
+  <ul>
+    <li><b>Country view:</b> apartment asking prices (2021) or, where too few sales existed, house sale prices (2020), sourced from STATEC / Observatoire de l'Habitat notarial-deed data, via a cleaned dataset published on GitHub (<code>b-rodrigues/rap4all</code>). Where a commune had neither, it falls back to its canton's average — flagged in the detail panel as <code>(canton avg. fallback)</code>.</li>
+    <li><b>City view:</b> Immotop.lu quarterly market reports for Luxembourg City's 24 quartiers, 2023–2025 (mixed vintages — some figures are more recent than others, and smaller quartiers show real quarter-to-quarter volatility since they have few transactions).</li>
+  </ul>
+  <h3>Scoring</h3>
+  <p>Linear min-max normalization, inverted so the cheapest area scores 100 and the most expensive scores 0:</p>
+  <p><code>score = 100 &times; (max_price &minus; this_price) / (max_price &minus; min_price)</code></p>
+  <div class="callout">Country and city views are normalized <b>separately</b> against their own min/max. A score of 60 in one view and 60 in the other do not represent the same price — they occupy the same relative position on two different scales.</div>
+  <div class="callout warn"><b>Known drift:</b> commune-level prices are 2020&ndash;21 figures. Nationally, prices have moved roughly &minus;10% to +5% since, depending on the year — treat this layer as a relative ranking between areas, not current absolute prices.</div>
+
+  <h2><span class="n">03</span>Connectivity</h2>
+  <p>For the ~39 communes with a CFL train station, this is real 2022 station ridership (ultimate source: Wikipedia's list of Luxembourg railway stations, sourced from CFL/ODM), summed where a commune has multiple stations and log-scaled (ridership spans from a few thousand to Luxembourg station's 17.6 million/year). That's blended 62/38 with a straight-line-distance-to-capital score, which is the sole signal for communes with no station. City-view quartiers use the same approach for the five quartiers with their own station (Gare, Pfaffenthal, Dommeldange, Hollerich, Cents), plus a flat bonus for tram-served quartiers.</p>
+  <p>The rail line routes drawn on the map's transit overlay are <b>schematic</b>: real stations, connected in their real line order, as straight lines rather than surveyed track geometry. Station markers sit at commune/quartier center points, not surveyed station coordinates (which weren't available).</p>
+  <div class="callout warn"><b>What's missing:</b> local bus service (RGTR/AVL) isn't modelled at all. That's most of the country's actual public-transit stop count. The national GTFS feed and OpenStreetMap/Overpass — the two sources that would have real stop/route data — were both on domains unreachable from the tool used to build this. If you have access to either, this is the layer most worth replacing.</div>
+
+  <h2><span class="n">04</span>Amenities</h2>
+  <p>Real grocery-store and dining/entertainment counts pulled from Google Places, for a <b>sample</b> of the ~35 largest communes and the busiest Luxembourg City quartiers — not an exhaustive census. Because the search results don't come labelled with which query found them (and spill across town boundaries), every result was re-assigned to its true commune or quartier by checking its real coordinates against the actual boundary polygons (point-in-polygon), rather than trusted at face value.</p>
+  <p>Areas outside the sample get an estimate instead: the relationship between population density and amenity count observed in the sampled areas (a regression fit, R&sup2; &asymp; 0.24 — weak) is used to predict a count from density alone. Every area's detail panel says outright which kind of number it's showing: <code>real: N grocery + N dining/entertainment found nearby</code> or <code>estimated from population density</code>.</p>
+  <div class="callout warn">This is a sample, not a census. A small town this search didn't happen to cover may well have a real shop or restaurant that isn't reflected here.</div>
+
+  <h2><span class="n">05</span>Safety / Reputation</h2>
+  <p>No official Luxembourg crime dataset is published below the national level — the Police Grand-Ducale only releases country-wide annual totals. This layer blends the best real substitutes found:</p>
+  <ul>
+    <li><b>Numbeo Safety Index</b> — a crowdsourced perception survey. Only about 10 communes had enough contributors (as few as 4, as many as 177 for the capital) to be shown; each score displays its contributor count so you can judge confidence yourself.</li>
+    <li><b>A documented hotspot for Luxembourg City</b> — in May 2025 the government launched an official "Drogendësch 2.0" anti-drug action plan naming the Gare, Bonnevoie, and Hollerich quartiers specifically, backed by a real figure: 35% of all city police patrols were concentrated in those three quartiers in early 2025. That's a government-published fact, not a perception score, and those quartiers carry a fixed penalty as a result.</li>
+    <li><b>Your own rating</b> — anywhere without public data can be rated 1&ndash;5 stars directly in the map. Your rating always overrides the public data where both exist for that area, and is stored only in your browser (<code>localStorage</code>-equivalent via the map's own storage), never sent anywhere.</li>
+  </ul>
+  <div class="callout">Everywhere else defaults to a neutral midpoint until you rate it. That's a deliberate choice — better to show "no data" than to fabricate a number.</div>
+
+  <h2><span class="n">06</span>Combined score</h2>
+  <p>The four layers are combined as a weighted average, with weights you control via the sliders in the map:</p>
+  <p><code>combined = (afford&times;w1 + connect&times;w2 + amenity&times;w3 + safety&times;w4) / (w1+w2+w3+w4)</code></p>
+  <p>Default weights are 35 / 30 / 20 / 15 (affordability, connectivity, amenities, safety) — a starting point, not a recommendation. Move them to reflect what actually matters to you; the map, top-picks list, and every score on it update live.</p>
+
+  <h2><span class="n">07</span>Data vintage at a glance</h2>
+  <table class="datatable">
+    <tr><th>Layer</th><th>Source</th><th>Vintage</th></tr>
+    <tr><td class="lbl">Commune prices</td><td>STATEC / Observatoire de l'Habitat (via GitHub mirror)</td><td>2020&ndash;2021</td></tr>
+    <tr><td class="lbl">Quartier prices</td><td>Immotop.lu quarterly reports</td><td>2023&ndash;2025 (mixed)</td></tr>
+    <tr><td class="lbl">Rail ridership</td><td>CFL / ODM, via Wikipedia</td><td>2022</td></tr>
+    <tr><td class="lbl">Amenities (sampled)</td><td>Google Places</td><td>current</td></tr>
+    <tr><td class="lbl">Safety (Numbeo)</td><td>Numbeo crowdsourced survey</td><td>2024&ndash;2026 (rolling, varies by commune)</td></tr>
+    <tr><td class="lbl">Safety (hotspot)</td><td>Luxembourg government, "Drogendësch 2.0"</td><td>May 2025</td></tr>
+    <tr><td class="lbl">Population / area</td><td>Wikipedia (STATEC-sourced)</td><td>2025&ndash;2026</td></tr>
+    <tr><td class="lbl">Commune boundaries</td><td>OpenStreetMap mirror, manually merged</td><td>~2015 geometry, current names</td></tr>
+    <tr><td class="lbl">Quartier boundaries</td><td>Voronoi tessellation (derived, not official)</td><td>n/a</td></tr>
+  </table>
+
+  <h2><span class="n">08</span>Raw data</h2>
+  <p>The underlying files this tool loads are in <code>/data</code> in the repository, if you want to inspect, verify, or reuse them directly:</p>
+  <ul>
+    <li><a href="data/communes.json">communes.json</a> — per-commune scores, prices, rail, and amenity data</li>
+    <li><a href="data/communes.geojson">communes.geojson</a> — commune boundary polygons</li>
+    <li><a href="data/quartiers.json">quartiers.json</a> — per-quartier scores and data</li>
+    <li><a href="data/quartiers_voronoi.geojson">quartiers_voronoi.geojson</a> — quartier Voronoi polygons</li>
+  </ul>
+
+  <footer>
+    Built as a personal research tool, not an official product of the Luxembourg government or any of the organizations whose data it references. No warranty as to accuracy — verify anything decision-critical directly with the primary sources linked above.
+  </footer>
+</div>
+</body>
+</html>

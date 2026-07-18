@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Luxembourg Rental Explorer</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <h1>Luxembourg Rental Explorer</h1>
+      <span class="tag" id="viewTag">Country</span>
+      <a href="methodology.html" class="methodology-link">Data &amp; methodology</a>
+    </div>
+    <div class="view-toggle">
+      <button id="btnCountry" class="active">Country</button>
+      <button id="btnCity">Luxembourg City</button>
+    </div>
+  </header>
+  <main>
+    <div id="map"></div>
+    <div id="panel">
+      <div>
+        <p class="section-label">Layer</p>
+        <div class="layer-tabs" id="layerTabs">
+          <button data-layer="combined" class="active"><span class="k">Combined</span><span class="v">weighted score</span></button>
+          <button data-layer="afford"><span class="k">Affordability</span><span class="v">price / m²</span></button>
+          <button data-layer="connect"><span class="k">Connectivity</span><span class="v">rail ridership + distance</span></button>
+          <button data-layer="amenity"><span class="k">Amenities</span><span class="v">real stores + dining (sampled)</span></button>
+          <button data-layer="safety"><span class="k">Safety / rep.</span><span class="v">Numbeo + your ratings</span></button>
+        </div>
+      </div>
+
+      <div id="weightsBlock">
+        <p class="section-label">Weights (combined score)</p>
+        <div class="weight-row"><label>Affordability</label><input type="range" min="0" max="100" value="35" id="wAfford"><span class="wv" id="wAffordV">35</span></div>
+        <div class="weight-row"><label>Connectivity</label><input type="range" min="0" max="100" value="30" id="wConnect"><span class="wv" id="wConnectV">30</span></div>
+        <div class="weight-row"><label>Amenities</label><input type="range" min="0" max="100" value="20" id="wAmenity"><span class="wv" id="wAmenityV">20</span></div>
+        <div class="weight-row"><label>Safety/rep.</label><input type="range" min="0" max="100" value="15" id="wSafety"><span class="wv" id="wSafetyV">15</span></div>
+      </div>
+
+      <div>
+        <p class="section-label">Scale</p>
+        <div class="legend"><span>Lower</span><div class="bar"></div><span>Higher</span></div>
+      </div>
+
+      <div>
+        <p class="section-label">Overlay</p>
+        <label class="toggle-row">
+          <input type="checkbox" id="transitToggle">
+          <span class="toggle-text">
+            <span class="k">Rail &amp; tram network</span>
+            <span class="v">real stations + ridership, schematic routes</span>
+          </span>
+        </label>
+        <div id="transitLegend" class="transit-legend" style="display:none;">
+          <div><span class="dot dot-rail"></span>CFL rail line (schematic) &amp; stations, sized by 2022 ridership</div>
+          <div><span class="dot dot-tram"></span>Luxtram line (schematic) &amp; stops</div>
+          <div class="transit-note">Bus (RGTR/AVL) isn't shown — no public stop/route dataset was reachable from this tool. See footer.</div>
+        </div>
+      </div>
+
+      <div>
+        <p class="section-label">Selected area</p>
+        <div id="detail"><div class="placeholder">Tap a commune on the map — or an item below — to see its numbers and (optionally) rate how safe/desirable it feels to you.</div></div>
+      </div>
+
+      <div>
+        <p class="section-label" id="topLabel">Top picks — current weights</p>
+        <div id="toplist"></div>
+      </div>
+
+      <footer class="notes" id="footNotes"></footer>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
