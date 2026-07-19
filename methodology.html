@@ -6,7 +6,7 @@
 <title>Data &amp; Methodology — Luxembourg Rental Explorer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 <style>
   body{ overflow-y:auto; }
   .doc{
@@ -168,13 +168,26 @@
   <p><code>combined = (afford&times;w1 + connect&times;w2 + amenity&times;w3 + safety&times;w4) / (w1+w2+w3+w4)</code></p>
   <p>Default weights are 35 / 30 / 20 / 15 (affordability, connectivity, amenities, safety) — a starting point, not a recommendation. Move them to reflect what actually matters to you; the map, top-picks list, and every score on it update live.</p>
 
-  <h2><span class="n">07</span>Data vintage at a glance</h2>
+  <h2><span class="n">07</span>Score an address</h2>
+  <p>The <b>Score an address</b> box geocodes any Luxembourg address (via Nominatim / OpenStreetMap) and drops a draggable pin with its own scorecard, shown as an overlay on the pin rather than in the side panel. Unlike the map layers, which score whole communes and quartiers, the pin mixes two kinds of factor.</p>
+  <h3>Recomputed at the exact point (address-level)</h3>
+  <ul>
+    <li><b>Transit access</b> — every one of the ~2,600 GTFS stops with service on the sample weekday contributes its scheduled departures/day, discounted by walking distance (the weight halves roughly every 280&nbsp;m) and summed, then mapped onto a saturating 0&ndash;100 scale. The single nearest stop and nearest rail station are shown as concrete facts beside the score.</li>
+    <li><b>Amenities</b> — for each of the nine OSM categories, the score blends <i>density</i> (how many lie within an 800&nbsp;m walk, log-scaled and capped at a POI-dense urban level) with <i>proximity</i> (how far the nearest one is).</li>
+  </ul>
+  <h3>Inherited from the containing commune/quartier (area-level)</h3>
+  <p>No address-level data exists for these, so the pin adopts the figures of the commune or quartier it falls inside (located by point-in-polygon): <b>affordability</b> (price/m&sup2;), <b>safety / reputation</b>, and the area&rsquo;s <b>overall transit service level</b>.</p>
+  <p>The connectivity bar blends the two: <code>connectivity = 0.6 &times; address walk-to-transit + 0.4 &times; area service level</code>, so a home far from a stop in a well-served commune and one beside a stop in a thin commune both read fairly. The combined score uses the same weight sliders as the map.</p>
+  <p><b>Caveats:</b> distances are straight-line, not walking-route; the pin inherits its commune&rsquo;s price rather than a specific listing&rsquo;s rent; and the GTFS feed is the current summer schedule, so a few term-time school lines are understated.</p>
+
+  <h2><span class="n">08</span>Data vintage at a glance</h2>
   <table class="datatable">
     <tr><th>Layer</th><th>Source</th><th>Vintage</th></tr>
     <tr><td class="lbl">Commune prices</td><td>STATEC / Observatoire de l'Habitat (via GitHub mirror)</td><td>2020&ndash;2021</td></tr>
     <tr><td class="lbl">Quartier prices</td><td>Immotop.lu quarterly reports</td><td>2023&ndash;2025 (mixed)</td></tr>
     <tr><td class="lbl">Transit service (bus/tram/rail departures)</td><td>National GTFS feed, data.public.lu (RGTR/AVL/TICE/Luxtram/CFL)</td><td>Jul 2026 (summer schedule)</td></tr>
     <tr><td class="lbl">Rail station markers (overlay: coords + size)</td><td>National GTFS feed, data.public.lu (station coordinates + trains/day)</td><td>Jul 2026 (summer schedule)</td></tr>
+    <tr><td class="lbl">Address transit access (~2,600 stop coords + departures)</td><td>National GTFS feed, data.public.lu (stops.txt + stop_times.txt)</td><td>Jul 2026 (summer schedule)</td></tr>
     <tr><td class="lbl">Rail ridership (detail panel stat)</td><td>CFL / ODM, via Wikipedia</td><td>2022</td></tr>
     <tr><td class="lbl">Amenities (~7,700 POIs, 9 categories)</td><td>OpenStreetMap via Overpass API</td><td>Jul 2026</td></tr>
     <tr><td class="lbl">Safety (baseline)</td><td>Presumed safe unless documented (inverted model)</td><td>&mdash;</td></tr>
@@ -184,13 +197,15 @@
     <tr><td class="lbl">Quartier boundaries</td><td>Voronoi tessellation (derived, not official)</td><td>n/a</td></tr>
   </table>
 
-  <h2><span class="n">08</span>Raw data</h2>
+  <h2><span class="n">09</span>Raw data</h2>
   <p>The underlying files this tool loads are in <code>/data</code> in the repository, if you want to inspect, verify, or reuse them directly:</p>
   <ul>
     <li><a href="data/communes.json">communes.json</a> — per-commune scores, prices, rail, and amenity data</li>
     <li><a href="data/communes.geojson">communes.geojson</a> — commune boundary polygons</li>
     <li><a href="data/quartiers.json">quartiers.json</a> — per-quartier scores and data</li>
     <li><a href="data/quartiers_voronoi.geojson">quartiers_voronoi.geojson</a> — quartier Voronoi polygons</li>
+    <li><a href="data/transit_stops.json">transit_stops.json</a> — ~2,600 GTFS stop points (coords, mode, departures/day) driving address-level transit access</li>
+    <li><a href="data/amenities_poi.json">amenities_poi.json</a> — ~7,700 OSM POIs by category, driving address-level amenities</li>
   </ul>
 
   <footer>

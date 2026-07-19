@@ -461,8 +461,243 @@ document.getElementById('footNotes').innerHTML =
   'Amenities: a real census of ~7,700 points of interest from OpenStreetMap (via the Overpass API), replacing the old sampled/estimated model. Every POI is placed by its true coordinates into the correct commune or quartier by point-in-polygon, and sorted into nine categories \u2014 groceries/food shops, restaurants/caf\u00e9s/bars, retail shops, healthcare, pharmacies, schools/childcare, banks/ATMs, gas stations, and parks/sports. The score is a weighted blend of the (log-scaled) count in each category, min-max normalised within each layer, so amenity-dense towns rank high and thin rural communes rank low on real counts rather than a density guess. Each category can be toggled on the map as its own point layer. Caveats: OSM coverage is community-maintained (very good in Luxembourg but not perfect), and \u201cleisure\u201d is deliberately limited to real public parks/sports facilities \u2014 the thousands of private gardens and backyard pools OSM also tags as leisure are excluded. ' +
   'Safety/reputation: Luxembourg publishes no crime statistics below the national level (the police reports are country-wide totals plus an org-chart of 4 police regions \u2014 no per-commune or per-region figures exist), and it is one of the safest countries in the world. So instead of inventing a crime rate everywhere, this layer inverts the problem: every commune and quartier is treated as generally safe (baseline 90/100) unless a specific problem is documented in official sources or the press, in which case it is marked down. Documented markdowns (2024\u201325 review): in the capital, the Gare quartier (22) \u2014 the government\u2019s \u201cDrogend\u00ebsch 2.0\u201d action plan (May 2025) over open drug dealing, homelessness and prostitution around Rue de Strasbourg / Rue Joseph Junck \u2014 plus Hollerich (45) and North/South Bonnevoie (48), the rest of that enforcement zone (35% of all city police patrols); at commune level, Luxembourg (68, hosts those hotspots but is mostly safe), Esch-sur-Alzette (58, documented insecurity and Brill-quarter drug trafficking) and Ettelbruck (72, commissariat made 24/7 under Drogend\u00ebsch). Everywhere else stays at the safe baseline. This means the layer is deliberately near-flat \u2014 that reflects reality \u2014 and it errs toward calling an area safe rather than fabricating suspicion. It is a documented-incident model, not a measured crime rate, so treat a low score as \u201cthere is a known, reported problem here,\u201d not as a precise ranking. ' +
   'Country boundaries are simplified and merged to match the current 100 communes. City quartier boundaries are not the official VDL polygons \u2014 that data exists but wasn\u2019t retrievable from this tool\u2019s sandbox \u2014 they\u2019re a Voronoi tessellation built from each quartier\u2019s real centre point and clipped to the real city outline, so borders are approximate even though the overall shape and coverage are accurate. ' +
-  'Transit overlays: three independently-toggleable layers \u2014 bus, tram, and rail \u2014 drawn from real GTFS route geometry (each shape Douglas-Peucker-simplified and de-duplicated into a network of polylines). Cross-border tails toward Trier, Thionville and Arlon are real, not artefacts. Rail additionally shows station markers placed at their real GTFS coordinates \u2014 so they sit on the line \u2014 and sized by scheduled trains/day at each station. The same GTFS data drives the connectivity score above (via departures/day).';
+  'Transit overlays: three independently-toggleable layers \u2014 bus, tram, and rail \u2014 drawn from real GTFS route geometry (each shape Douglas-Peucker-simplified and de-duplicated into a network of polylines). Cross-border tails toward Trier, Thionville and Arlon are real, not artefacts. Rail additionally shows station markers placed at their real GTFS coordinates \u2014 so they sit on the line \u2014 and sized by scheduled trains/day at each station. The same GTFS data drives the connectivity score above (via departures/day). ' +
+  'Score an address: geocoding is Nominatim / OpenStreetMap (Luxembourg only). The dropped pin gets its own scorecard mixing two kinds of factor. Address-level, recomputed at the exact point: transit access — every one of ~2,600 real GTFS stops with service on the sample weekday, its scheduled departures/day discounted by walking distance (weight halves roughly every 280 m) and summed on a saturating 0–100 scale, with the single nearest stop and nearest rail station shown as concrete facts; and amenities — for each of the nine OSM categories, a blend of how many lie within an 800 m walk (log-scaled, capped at a POI-dense urban level) and how far the nearest one is. Commune/quartier-level, inherited because no finer data exists: affordability (price/m²), safety/reputation, and the area’s overall transit service level. The connectivity bar is 60% the address’s own walk-to-transit and 40% the area’s overall service, so a home far from a stop in a well-served commune and one next to a stop in a thin commune both read fairly. The combined score uses the same weight sliders as the map. Caveats: distances are straight-line, not walking-route; the pin inherits its commune’s price rather than the listing’s actual rent; and the GTFS feed is the current summer schedule, so a few term-time school lines are understated.';
 
+
+// ---------- address scoring ----------
+// Hybrid model: transit access and amenities are recomputed from the pin's real
+// location (nearest GTFS stops, nearby OSM POIs); affordability, safety and the
+// commune's overall connectivity are inherited from the containing commune/quartier
+// (no finer data exists for those). Scores land on the same 0-100 scale as the layers.
+function haversine(aLat,aLon,bLat,bLon){
+  var R=6371000, toR=Math.PI/180;
+  var dLat=(bLat-aLat)*toR, dLon=(bLon-aLon)*toR;
+  var s=Math.sin(dLat/2)*Math.sin(dLat/2)+
+        Math.cos(aLat*toR)*Math.cos(bLat*toR)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+// ray-casting on a single ring of [lon,lat] pairs
+function ptInRing(lat,lon,ring){
+  var inside=false;
+  for(var i=0,j=ring.length-1;i<ring.length;j=i++){
+    var xi=ring[i][0], yi=ring[i][1], xj=ring[j][0], yj=ring[j][1];
+    if(((yi>lat)!==(yj>lat)) && (lon<(xj-xi)*(lat-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+function ptInFeature(lat,lon,feature){
+  var g=feature.geometry, polys=g.type==='Polygon' ? [g.coordinates] : g.coordinates;
+  for(var p=0;p<polys.length;p++){
+    var rings=polys[p];
+    if(ptInRing(lat,lon,rings[0])){           // in outer ring
+      var inHole=false;
+      for(var h=1;h<rings.length;h++){ if(ptInRing(lat,lon,rings[h])){ inHole=true; break; } }
+      if(!inHole) return true;
+    }
+  }
+  return false;
+}
+function locateArea(lat,lon){
+  var commune=null, quartier=null, i;
+  for(i=0;i<COMMUNES_GEOJSON.features.length;i++){
+    if(ptInFeature(lat,lon,COMMUNES_GEOJSON.features[i])){ commune=COMMUNES_GEOJSON.features[i].properties.name; break; }
+  }
+  for(i=0;i<QUARTIERS_GEOJSON.features.length;i++){
+    if(ptInFeature(lat,lon,QUARTIERS_GEOJSON.features[i])){ quartier=QUARTIERS_GEOJSON.features[i].properties.name; break; }
+  }
+  return {commune:commune, quartier:quartier};
+}
+
+// Transit access: sum every stop's daily departures, discounted by walking distance
+// (weight halves ~every 280 m), on a saturating 0-100 scale. Also returns the nearest
+// stop and nearest rail station as concrete facts to show alongside the score.
+function transitAccess(lat,lon){
+  var a=0, nearest=null, nd=Infinity, nrail=null, nrd=Infinity, s, d;
+  var S=TRANSIT_STOPS.stops;
+  for(var i=0;i<S.length;i++){
+    s=S[i]; d=haversine(lat,lon,s[0],s[1]);
+    if(d<1500) a+=s[3]*Math.exp(-d/400);
+    if(d<nd){ nd=d; nearest=s; }
+    if(s[2]==='r' && d<nrd){ nrd=d; nrail=s; }
+  }
+  return { score: Math.round(100*(1-Math.exp(-a/1800))),
+           nearest:nearest, ndist:nd, nrail:nrail, nrdist:nrd };
+}
+
+// Amenities: for each category, blend density (log-scaled count within an 800 m walk,
+// capped at a POI-rich urban level) with proximity (distance to the nearest one).
+var AMEN_CAP = {grocery:26, dining:115, retail:93, health:14, pharmacy:4, school:12, bank:14, fuel:2, leisure:16};
+var AMEN_W   = {grocery:.18, pharmacy:.12, health:.12, school:.12, dining:.10, retail:.08, bank:.08, leisure:.10, fuel:.06};
+function amenityLocal(lat,lon){
+  var cats={}, wsum=0, acc=0, c, pts, cnt, near, d, dens, prox, cs, i;
+  for(c in AMENITIES_POI){
+    pts=AMENITIES_POI[c]; cnt=0; near=Infinity;
+    for(i=0;i<pts.length;i++){ d=haversine(lat,lon,pts[i][0],pts[i][1]); if(d<800)cnt++; if(d<near)near=d; }
+    dens=Math.min(1, Math.log(1+cnt)/Math.log(1+(AMEN_CAP[c]||10)));
+    prox=Math.max(0, Math.min(1, 1-near/800));
+    cs=0.5*dens+0.5*prox;
+    cats[c]={cnt:cnt, near:near, cs:cs};
+    var w=AMEN_W[c]||0; wsum+=w; acc+=w*cs;
+  }
+  return { score: Math.round(100*acc/wsum), cats:cats };
+}
+
+function computeAddress(lat,lon){
+  var loc=locateArea(lat,lon);
+  var area = loc.quartier ? {type:'quartier', name:loc.quartier, obj:QUARTIERS[loc.quartier]}
+           : (loc.commune ? {type:'commune',  name:loc.commune,  obj:COMMUNES[loc.commune]} : null);
+  var ta=transitAccess(lat,lon), am=amenityLocal(lat,lon);
+  var afford = area ? area.obj.score_afford : null;
+  var safety = area ? getSafetyScore(area.type, area.name, area.obj) : 90;
+  var commuteConnect = area ? area.obj.score_connect : null;
+  // connectivity factor = 60% this address's walk-to-transit + 40% the area's overall service
+  var connect = commuteConnect!=null ? Math.round(0.6*ta.score + 0.4*commuteConnect) : ta.score;
+  return { lat:lat, lon:lon, loc:loc, area:area,
+           transit:ta, amenity:am,
+           afford:afford, safety:safety, connect:connect, communeConnect:commuteConnect };
+}
+function addressCombined(r){
+  var w=state.weights, num=0, den=0;
+  if(r.afford!=null){ num+=r.afford*w.afford; den+=w.afford; }
+  num+=r.connect*w.connect; den+=w.connect;
+  num+=r.amenity.score*w.amenity; den+=w.amenity;
+  num+=r.safety*w.safety; den+=w.safety;
+  return den>0 ? num/den : 50;
+}
+
+function fmtDist(m){ return m<1000 ? Math.round(m)+' m' : (m/1000).toFixed(1)+' km'; }
+function modeName(m){ return m==='r'?'rail':(m==='t'?'tram':'bus'); }
+
+function popBar(label, score, srcTag){
+  var s=Math.round(score);
+  return '<div class="pop-bar"><span class="bl">'+label+'</span>'+
+    '<span class="bt"><span class="bf" style="width:'+s+'%;background:'+scoreToColor(s)+'"></span></span>'+
+    '<span class="bn">'+s+'</span><span class="src">'+srcTag+'</span></div>';
+}
+function addressPopupHTML(r){
+  var combined=addressCombined(r);
+  var locLine = r.area
+    ? (r.loc.quartier ? r.loc.quartier+' &middot; Luxembourg City' : r.loc.commune+' commune')
+    : 'outside the mapped communes';
+  var af = r.afford!=null ? popBar('Afford.', r.afford, 'area') : '';
+  var bars = af +
+    popBar('Connect.', r.connect, 'addr') +
+    popBar('Amenities', r.amenity.score, 'addr') +
+    popBar('Safety', r.safety, 'area');
+
+  var ta=r.transit, ac=r.amenity.cats;
+  var nearStop = ta.nearest
+    ? fmtDist(ta.ndist)+' &middot; '+ta.nearest[3]+'/day '+modeName(ta.nearest[2])
+    : '—';
+  var railFact = ta.nrail ? fmtDist(ta.nrdist)+' &middot; '+ta.nrail[3]+' trains/day' : 'none nearby';
+  function amFact(c){ var o=ac[c]; return o.cnt+' &middot; nearest '+(o.near<800?Math.round(o.near)+' m':'>800 m'); }
+
+  var facts=
+    '<div class="pop-fact"><span class="fl">Nearest stop</span><span class="fv">'+nearStop+'</span></div>'+
+    '<div class="pop-fact"><span class="fl">Nearest rail</span><span class="fv">'+railFact+'</span></div>'+
+    '<div class="pop-fact"><span class="fl">Groceries ≤800m</span><span class="fv">'+amFact('grocery')+'</span></div>'+
+    '<div class="pop-fact"><span class="fl">Pharmacy ≤800m</span><span class="fv">'+amFact('pharmacy')+'</span></div>'+
+    '<div class="pop-fact"><span class="fl">Schools ≤800m</span><span class="fv">'+amFact('school')+'</span></div>'+
+    '<div class="pop-fact"><span class="fl">Dining ≤800m</span><span class="fv">'+amFact('dining')+'</span></div>';
+
+  var priceStr = (r.area && r.area.obj.price_m2) ? ' · ~'+r.area.obj.price_m2.toLocaleString('en-US')+' €/m²' : '';
+  var note = r.area
+    ? 'Connectivity &amp; amenities computed at this point; affordability'+priceStr+', safety and commune service inherited from '+(r.loc.quartier||r.loc.commune)+'.'
+    : 'Point falls outside the mapped communes — affordability unavailable; safety shown at the national baseline.';
+
+  return '<div class="pop-addr">'+ (r.label||'Dropped pin') +'</div>'+
+    '<div class="pop-loc">'+locLine+'</div>'+
+    '<div class="pop-combined">'+
+      '<div class="pop-chip" style="background:'+scoreToColor(combined)+'">'+Math.round(combined)+'</div>'+
+      '<div><div class="cl">Combined score</div><div class="cv">weighted by your sliders — afford / connect / amenity / safety</div></div>'+
+    '</div>'+
+    bars +
+    '<div class="pop-facts">'+facts+'</div>'+
+    '<div class="pop-note">'+note+'</div>';
+}
+
+// ---------- address pin control ----------
+var addrMarker=null, addrResult=null;
+function pinIcon(score){
+  return L.divIcon({
+    className:'', iconSize:[30,30], iconAnchor:[15,30], popupAnchor:[0,-28],
+    html:'<div class="addr-pin" style="background:'+scoreToColor(score)+'"><span>'+Math.round(score)+'</span></div>'
+  });
+}
+function refreshAddrPopup(){
+  if(!addrMarker || !addrResult) return;
+  addrResult.label = addrResult.label; // keep
+  var combined=addressCombined(addrResult);
+  addrMarker.setIcon(pinIcon(combined));
+  var pop=addrMarker.getPopup();
+  if(pop) pop.setContent(addressPopupHTML(addrResult));
+}
+function placePin(lat,lon,label){
+  addrResult = computeAddress(lat,lon);
+  addrResult.label = label;
+  var combined = addressCombined(addrResult);
+  if(addrMarker){
+    addrMarker.setLatLng([lat,lon]).setIcon(pinIcon(combined));
+  } else {
+    addrMarker = L.marker([lat,lon], {icon:pinIcon(combined), draggable:true, zIndexOffset:1000});
+    // the popup opens upward and is tall; pad the top generously so auto-pan keeps it
+    // clear of the fixed page header (which Leaflet's auto-pan is unaware of)
+    addrMarker.bindPopup('', {className:'lx-pop', maxWidth:260,
+      autoPanPaddingTopLeft:[24,96], autoPanPaddingBottomRight:[24,24]});
+    addrMarker.on('dragend', function(){
+      var ll=addrMarker.getLatLng();
+      var lbl=addrResult ? addrResult.label : 'Dropped pin';
+      addrResult = computeAddress(ll.lat, ll.lng);
+      addrResult.label = lbl+' (moved)';
+      addrMarker.setIcon(pinIcon(addressCombined(addrResult)));
+      addrMarker.getPopup().setContent(addressPopupHTML(addrResult));
+      addrMarker.openPopup();
+    });
+    addrMarker.addTo(map);
+  }
+  addrMarker.getPopup().setContent(addressPopupHTML(addrResult));
+  // open the popup only after the fly settles, so auto-pan positions it correctly
+  // rather than fighting the fly animation
+  map.once('moveend', function(){ if(addrMarker) addrMarker.openPopup(); });
+  map.flyTo([lat,lon], Math.max(map.getZoom(),14), {duration:0.6});
+}
+
+// keep an open pin's combined score in sync with the weight sliders
+['Afford','Connect','Amenity','Safety'].forEach(function(key){
+  var input=document.getElementById('w'+key);
+  if(input) input.addEventListener('input', refreshAddrPopup);
+});
+
+(function initAddressSearch(){
+  var input=document.getElementById('addrInput');
+  var btn=document.getElementById('addrBtn');
+  var status=document.getElementById('addrStatus');
+  if(!input||!btn) return;
+  function setStatus(msg,isErr){ status.textContent=msg; status.className='addr-status'+(isErr?' err':''); }
+  function search(){
+    var q=input.value.trim();
+    if(!q){ setStatus('Enter an address first.', true); return; }
+    btn.disabled=true; setStatus('Searching…', false);
+    var url='https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=lu&addressdetails=1&q='+encodeURIComponent(q);
+    fetch(url, {headers:{'Accept':'application/json'}})
+      .then(function(res){ if(!res.ok) throw new Error('geocoder '+res.status); return res.json(); })
+      .then(function(list){
+        if(!list || !list.length){ setStatus('No match in Luxembourg. Try adding the town or postcode.', true); btn.disabled=false; return; }
+        var hit=list[0];
+        var lat=parseFloat(hit.lat), lon=parseFloat(hit.lon);
+        var label=(hit.display_name||q).split(',').slice(0,2).join(',').trim();
+        var loc=locateArea(lat,lon);
+        if(!loc.commune){ setStatus('Found a location, but it is outside the mapped communes. Pin dropped anyway — drag it onto Luxembourg.', true); }
+        else { setStatus('Pinned in '+(loc.quartier||loc.commune)+'. Drag the pin to fine-tune the exact building.', false); }
+        placePin(lat,lon,label);
+        btn.disabled=false;
+      })
+      .catch(function(err){ setStatus('Geocoding failed ('+err.message+'). Check your connection and retry.', true); btn.disabled=false; });
+  }
+  btn.addEventListener('click', search);
+  input.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); search(); } });
+})();
 
 // ---------- init ----------
 renderAll();

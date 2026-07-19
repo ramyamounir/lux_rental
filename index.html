@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <div id="app">
@@ -25,6 +25,15 @@
   <main>
     <div id="map"></div>
     <div id="panel">
+      <div id="addrBox">
+        <p class="section-label">Score an address</p>
+        <div class="addr-input-row">
+          <input type="text" id="addrInput" placeholder="e.g. 2 Rue de Strasbourg, Luxembourg" autocomplete="off" spellcheck="false">
+          <button id="addrBtn">Score</button>
+        </div>
+        <div id="addrStatus" class="addr-status">Type a Luxembourg address to drop a scored pin. The pin is draggable — drop it on the exact building.</div>
+      </div>
+
       <div>
         <p class="section-label">Layer</p>
         <div class="layer-tabs" id="layerTabs">
@@ -110,7 +119,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="data.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<script src="data.js?v=8"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
