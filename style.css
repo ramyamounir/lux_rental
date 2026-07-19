@@ -212,6 +212,28 @@
   .sw-tram{ background:#d9789f; }
   .sw-rail{ background:#6fa8c9; }
 
+  .amen-toggles{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:4px 10px;
+  }
+  .amen-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:11px;
+    color:var(--text-dim);
+    cursor:pointer;
+    padding:2px 0;
+    line-height:1.2;
+  }
+  .amen-row input[type=checkbox]{
+    width:13px; height:13px; accent-color:var(--gold); flex-shrink:0; cursor:pointer;
+  }
+  .amen-row .amdot{
+    width:9px; height:9px; border-radius:50%; flex-shrink:0;
+  }
+
   .transit-legend{
     margin-top:8px;
     display:flex;

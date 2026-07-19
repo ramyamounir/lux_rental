@@ -238,6 +238,45 @@ var networkGroups = {
   });
 });
 
+// ---------- amenity point-of-interest overlays ----------
+// Real POIs from OpenStreetMap (via Overpass), one toggleable canvas layer per
+// category. Rendered on a shared canvas renderer so thousands of dots stay fast.
+var AMEN_CATS = [
+  {key:'grocery',  color:'#e8b04a', label:'Groceries & food'},
+  {key:'dining',   color:'#e2685a', label:'Restaurants / cafés / bars'},
+  {key:'retail',   color:'#c98bd0', label:'Retail shops'},
+  {key:'health',   color:'#5fb6d4', label:'Healthcare'},
+  {key:'pharmacy', color:'#5fd0a0', label:'Pharmacies'},
+  {key:'school',   color:'#d79a63', label:'Schools / childcare'},
+  {key:'bank',     color:'#9aa0dc', label:'Banks / ATMs'},
+  {key:'fuel',     color:'#d6d264', label:'Gas stations'},
+  {key:'leisure',  color:'#78c98a', label:'Parks / sports'}
+];
+map.createPane('amenityPane');
+map.getPane('amenityPane').style.zIndex = 420;
+// the canvas renderer paints one element over the whole map; without this it would
+// swallow every click before it reaches the commune polygons below (the dots
+// themselves are non-interactive, so nothing is lost by making the pane click-through)
+map.getPane('amenityPane').style.pointerEvents = 'none';
+var amenityRenderer = L.canvas({pane:'amenityPane', padding:0.5});
+var amenityGroups = {};
+AMEN_CATS.forEach(function(c){
+  var g = L.layerGroup();
+  (AMENITIES_POI[c.key] || []).forEach(function(pt){
+    L.circleMarker([pt[0], pt[1]], {
+      renderer:amenityRenderer, radius:2.6, weight:0,
+      fillColor:c.color, fillOpacity:0.78, interactive:false
+    }).addTo(g);
+  });
+  amenityGroups[c.key] = g;
+  var el = document.getElementById('am_'+c.key);
+  if(!el) return;
+  el.addEventListener('change', function(){
+    if(el.checked) amenityGroups[c.key].addTo(map);
+    else map.removeLayer(amenityGroups[c.key]);
+  });
+});
+
 communeLayer.addTo(map);
 fitCountry();
 setTimeout(function(){ map.invalidateSize(); fitCountry(); }, 60);
@@ -310,7 +349,7 @@ var LAYER_LABELS = {
   combined:'Top picks — combined score',
   afford:'Cheapest areas',
   connect:'Best connected',
-  amenity:'Most amenities (density proxy)',
+  amenity:'Most amenities (real OSM POIs)',
   safety:'Safest (data + your ratings)'
 };
 
@@ -370,9 +409,16 @@ function renderDetail(){
   if(!obj){ det.innerHTML=''; return; }
 
   var subLine, statsHtml;
-  var amenityRow = obj.grocery_count!=null
-      ? row('Nearby (sampled)', obj.grocery_count+' grocery, '+obj.dine_count+' dining/entertainment')
-      : row('Nearby (sampled)', 'none found \u2014 density-based estimate used');
+  var amenityRow = '';
+  if(obj.amenity_counts){
+    var ac = obj.amenity_counts;
+    amenityRow =
+      row('Amenities (OSM)', obj.amenity_total.toLocaleString('en-US')+' places nearby') +
+      row('Groceries \u00b7 dining', ac.grocery+' \u00b7 '+ac.dining) +
+      row('Retail \u00b7 health \u00b7 pharm.', ac.retail+' \u00b7 '+ac.health+' \u00b7 '+ac.pharmacy) +
+      row('Schools \u00b7 banks \u00b7 fuel', ac.school+' \u00b7 '+ac.bank+' \u00b7 '+ac.fuel) +
+      row('Parks / sports', ac.leisure);
+  }
   var transitRow = '';
   if(obj.transit_dep_day!=null){
     var modeBits = 'bus '+obj.bus_dep_day.toLocaleString('en-US')
@@ -474,7 +520,7 @@ function scorebar(lbl,score){
 document.getElementById('footNotes').innerHTML =
   'Prices: STATEC / Observatoire de l\u2019Habitat via data.public.lu \u2014 commune layer uses 2020\u201321 notarial/asking prices (relative ranking; Luxembourg-wide levels have shifted since, roughly \u201310 to +5% depending on year), filled with canton averages where a commune had too few sales. Quartier layer uses Immotop.lu quarterly reports (2023\u20132025, mixed vintages, some volatile quarter to quarter). ' +
   'Connectivity: real public-transport service level from Luxembourg\u2019s national GTFS feed (data.public.lu). Every scheduled departure on a representative weekday (Wed 22 Jul 2026) was counted at each stop across all modes \u2014 RGTR + AVL + TICE bus, Luxtram, and CFL rail \u2014 and every stop assigned to its commune/quartier by point-in-polygon against the boundary layers (~360k departures nationally). The score is log-scaled departures/day blended 65/35 with distance-to-capital, so heavily-bused suburbs no longer look disconnected just for lacking a train station, and a rural halt with a handful of daily trains no longer outranks them. Caveat: the current feed covers the summer-holiday period, so school-only lines and some reduced summer schedules understate term-time service in a few rural communes. ' +
-  'Amenities: real grocery-store and dining/entertainment counts from Google Places, geometrically matched to the correct commune or quartier (not just wherever the search happened to be aimed \u2014 results spill across boundaries, so every place was placed by its real coordinates). This only covers a sampled subset \u2014 the ~35 largest communes and the busiest few quartiers \u2014 not an exhaustive census; smaller places may have local shops this sample missed. Areas with no sampled data get an estimate from the (weak, R\u00b2\u22480.24) relationship between population density and amenity count observed in the sampled areas, clearly marked as such in each area\u2019s detail panel. ' +
+  'Amenities: a real census of ~7,700 points of interest from OpenStreetMap (via the Overpass API), replacing the old sampled/estimated model. Every POI is placed by its true coordinates into the correct commune or quartier by point-in-polygon, and sorted into nine categories \u2014 groceries/food shops, restaurants/caf\u00e9s/bars, retail shops, healthcare, pharmacies, schools/childcare, banks/ATMs, gas stations, and parks/sports. The score is a weighted blend of the (log-scaled) count in each category, min-max normalised within each layer, so amenity-dense towns rank high and thin rural communes rank low on real counts rather than a density guess. Each category can be toggled on the map as its own point layer. Caveats: OSM coverage is community-maintained (very good in Luxembourg but not perfect), and \u201cleisure\u201d is deliberately limited to real public parks/sports facilities \u2014 the thousands of private gardens and backyard pools OSM also tags as leisure are excluded. ' +
   'Safety/reputation: no official Luxembourg crime dataset is published below the national level, so this blends two real sources \u2014 Numbeo\u2019s crowdsourced Safety Index (perception survey, shown with its contributor count; only ~10 communes have enough responses to be meaningful, mostly the larger towns) and, for Luxembourg City, the government\u2019s own 2025 \u201cDrogend\u00ebsch 2.0\u201d anti-drug plan, which names Gare, Bonnevoie and Hollerich as a documented hotspot (35% of city police patrols concentrated there). Everywhere else has no data \u2014 rate it yourself to fold your own judgment into the combined score; your rating always overrides the public data where both exist, and is stored only on this device. ' +
   'Country boundaries are simplified and merged to match the current 100 communes. City quartier boundaries are not the official VDL polygons \u2014 that data exists but wasn\u2019t retrievable from this tool\u2019s sandbox \u2014 they\u2019re a Voronoi tessellation built from each quartier\u2019s real centre point and clipped to the real city outline, so borders are approximate even though the overall shape and coverage are accurate. ' +
   'Transit overlays: three independently-toggleable layers \u2014 bus, tram, and rail \u2014 drawn from real GTFS route geometry (each shape Douglas-Peucker-simplified and de-duplicated into a network of polylines). Cross-border tails toward Trier, Thionville and Arlon are real, not artefacts. Rail additionally shows station markers placed at their real GTFS coordinates \u2014 so they sit on the line \u2014 and sized by scheduled trains/day at each station. The same GTFS data drives the connectivity score above (via departures/day).';

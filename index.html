@@ -31,7 +31,7 @@
           <button data-layer="combined" class="active"><span class="k">Combined</span><span class="v">weighted score</span></button>
           <button data-layer="afford"><span class="k">Affordability</span><span class="v">price / m²</span></button>
           <button data-layer="connect"><span class="k">Connectivity</span><span class="v">transit departures/day + distance</span></button>
-          <button data-layer="amenity"><span class="k">Amenities</span><span class="v">real stores + dining (sampled)</span></button>
+          <button data-layer="amenity"><span class="k">Amenities</span><span class="v">real OSM POIs · 9 categories</span></button>
           <button data-layer="safety"><span class="k">Safety / rep.</span><span class="v">Numbeo + your ratings</span></button>
         </div>
       </div>
@@ -76,6 +76,22 @@
           </span>
         </label>
         <div class="transit-note">Real route geometry from the national GTFS feed. Cross-border tails (toward Trier, Thionville, Arlon) are real. See footer.</div>
+      </div>
+
+      <div>
+        <p class="section-label">Amenities on map (points of interest)</p>
+        <div class="amen-toggles">
+          <label class="amen-row"><input type="checkbox" id="am_grocery"><span class="amdot" style="background:#e8b04a"></span>Groceries &amp; food</label>
+          <label class="amen-row"><input type="checkbox" id="am_dining"><span class="amdot" style="background:#e2685a"></span>Restaurants / cafés / bars</label>
+          <label class="amen-row"><input type="checkbox" id="am_retail"><span class="amdot" style="background:#c98bd0"></span>Retail shops</label>
+          <label class="amen-row"><input type="checkbox" id="am_health"><span class="amdot" style="background:#5fb6d4"></span>Healthcare</label>
+          <label class="amen-row"><input type="checkbox" id="am_pharmacy"><span class="amdot" style="background:#5fd0a0"></span>Pharmacies</label>
+          <label class="amen-row"><input type="checkbox" id="am_school"><span class="amdot" style="background:#d79a63"></span>Schools / childcare</label>
+          <label class="amen-row"><input type="checkbox" id="am_bank"><span class="amdot" style="background:#9aa0dc"></span>Banks / ATMs</label>
+          <label class="amen-row"><input type="checkbox" id="am_fuel"><span class="amdot" style="background:#d6d264"></span>Gas stations</label>
+          <label class="amen-row"><input type="checkbox" id="am_leisure"><span class="amdot" style="background:#78c98a"></span>Parks / sports</label>
+        </div>
+        <div class="transit-note">~7,700 real points of interest from OpenStreetMap. Toggle any category to plot it. See footer.</div>
       </div>
 
       <div>
