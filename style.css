@@ -280,6 +280,7 @@
   .sw-bus{ background:#6bbfa0; }
   .sw-tram{ background:#d9789f; }
   .sw-rail{ background:#6fa8c9; }
+  .sw-street{ background:linear-gradient(90deg,#e9e3d6,#cdd7cf); }
 
   .amen-toggles{
     display:grid;

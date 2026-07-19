@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 <div id="app">
@@ -56,6 +56,19 @@
       <div>
         <p class="section-label">Scale</p>
         <div class="legend"><span>Lower</span><div class="bar"></div><span>Higher</span></div>
+      </div>
+
+      <div>
+        <p class="section-label">Basemap</p>
+        <label class="toggle-row">
+          <input type="checkbox" id="streetToggle">
+          <span class="swatch sw-street"></span>
+          <span class="toggle-text">
+            <span class="k">Street map</span>
+            <span class="v">CARTO Voyager — real roads &amp; names beneath the scores</span>
+          </span>
+        </label>
+        <div class="transit-note">Overlays actual streets so you can place an address pin on the right building. Score colors dim while it's on.</div>
       </div>
 
       <div>
@@ -119,7 +132,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="data.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="data.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

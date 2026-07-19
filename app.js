@@ -65,6 +65,21 @@ function currentType(){ return state.view==='country' ? 'commune' : 'quartier'; 
 var map = L.map('map', {zoomControl:true, attributionControl:true, minZoom:8, maxZoom:16});
 L.control.attribution({prefix:false}).addAttribution('Boundaries: government open data, simplified').addTo(map);
 
+// Optional street basemap (off by default — the app's default look is the clean
+// dark canvas). CARTO Voyager: light, labeled roads. Lives in the default tilePane
+// (z-index 200), so it sits beneath every score polygon and transit line. When on,
+// the choropleth fill is dimmed (see setBasemap) so streets read through.
+var streetTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  subdomains:'abcd', maxZoom:19, attribution:'© OpenStreetMap contributors · © CARTO'
+});
+var CHORO_OPACITY = 0.85;
+function setBasemap(on){
+  if(on){ streetTiles.addTo(map); CHORO_OPACITY = 0.42; }
+  else { map.removeLayer(streetTiles); CHORO_OPACITY = 0.85; }
+  communeLayer.setStyle(communeStyle);
+  quartierLayer.setStyle(quartierStyle);
+}
+
 var communeLayer = L.geoJSON(COMMUNES_GEOJSON, {
   style: communeStyle,
   onEachFeature: function(feature, layer){
@@ -113,14 +128,14 @@ function quartierStyle(feature){
   var name = feature.properties.name;
   var obj = QUARTIERS[name];
   var s = obj ? scoreFor(obj,'quartier',name,state.layer) : 50;
-  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:0.85};
+  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:CHORO_OPACITY};
 }
 
 function communeStyle(feature){
   var name = feature.properties.name;
   var obj = COMMUNES[name];
   var s = obj ? scoreFor(obj,'commune',name,state.layer) : 50;
-  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:0.85};
+  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:CHORO_OPACITY};
 }
 
 function fitCountry(){
@@ -233,6 +248,9 @@ AMEN_CATS.forEach(function(c){
     else map.removeLayer(amenityGroups[c.key]);
   });
 });
+
+var streetToggle = document.getElementById('streetToggle');
+if(streetToggle) streetToggle.addEventListener('change', function(){ setBasemap(this.checked); });
 
 communeLayer.addTo(map);
 fitCountry();
