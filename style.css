@@ -207,6 +207,10 @@
   .toggle-row .toggle-text{ display:flex; flex-direction:column; gap:1px; }
   .toggle-row .k{ font-size:12.5px; font-weight:600; color:var(--text); }
   .toggle-row .v{ font-size:10px; color:var(--text-dimmer); }
+  .toggle-row .swatch{ width:16px; height:3px; border-radius:2px; flex-shrink:0; }
+  .sw-bus{ background:#6bbfa0; }
+  .sw-tram{ background:#d9789f; }
+  .sw-rail{ background:#6fa8c9; }
 
   .transit-legend{
     margin-top:8px;
@@ -227,6 +231,7 @@
   .transit-legend .dot-rail{ background:#6fa8c9; }
   .transit-legend .dot-tram{ background:#d9789f; }
   .transit-legend .transit-note{ color:var(--text-dimmer); font-size:10px; line-height:1.5; padding-top:2px; }
+  .transit-note{ color:var(--text-dimmer); font-size:10px; line-height:1.5; margin-top:8px; padding-left:2px; }
 
   #detail{
     background:var(--panel-2);

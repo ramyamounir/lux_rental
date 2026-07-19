@@ -22,10 +22,12 @@ lux-rental-explorer/
     ├── communes.json         per-commune scores & attributes
     ├── communes.geojson      commune boundary polygons
     ├── quartiers.json        per-quartier scores & attributes
-    └── quartiers_voronoi.geojson   quartier boundary polygons (Voronoi, not official)
+    ├── quartiers_voronoi.geojson   quartier boundary polygons (Voronoi, not official)
+    ├── transit_network.json   bus / tram / rail route geometry (from national GTFS)
+    └── rail_stations.json     CFL station coordinates + trains/day (from national GTFS)
 ```
 
-`data.js` is a plain concatenation of the four files in `/data` into JS `const`
+`data.js` is a plain concatenation of the six files in `/data` into JS `const`
 declarations, so the app can load them with a `<script>` tag instead of `fetch()` —
 this keeps it fully static, with no server, build step, or CORS issues, so it also
 just works if you open `index.html` directly from disk.
@@ -53,6 +55,8 @@ for name, path in [
     ('COMMUNES', 'data/communes.json'),
     ('QUARTIERS', 'data/quartiers.json'),
     ('QUARTIERS_GEOJSON', 'data/quartiers_voronoi.geojson'),
+    ('TRANSIT_NETWORK', 'data/transit_network.json'),
+    ('RAIL_STATIONS', 'data/rail_stations.json'),
 ]:
     out += f'const {name} = ' + json.dumps(json.load(open(path)), ensure_ascii=False) + ';\n'
 open('data.js', 'w').write(out)

@@ -175,68 +175,67 @@ function fitCity(){
   catch(e){ map.setView([49.612,6.128], 13); }
 }
 
-// ---------- transit overlay ----------
-// Real CFL stations (with 2022 ridership) and the Luxtram line, positioned at
-// commune/quartier centroids (exact per-station coordinates weren't available)
-// and connected in their real line order. This is schematic routing between
-// real points, not surveyed track geometry. No bus data: see footer note.
-var RAIL_LINES = [
-  ['Luxembourg','Walferdange','Lorentzweiler','Lintgen','Mersch','Colmar-Berg','Schieren','Ettelbruck','Bourscheid','Kiischpelt','Clervaux','Troisvierges'],
-  ['Ettelbruck','Diekirch'],
-  ['Kiischpelt','Wiltz'],
-  ['Luxembourg','Schuttrange','Contern','Betzdorf','Biwer','Manternach','Mertert'],
-  ['Luxembourg','Bertrange','Mamer','Steinfort'],
-  ['Luxembourg','Hesperange','Roeser','Bettembourg','Schifflange','Esch-sur-Alzette','Sanem','Differdange','Pétange'],
-  ['Bettembourg','Dudelange'],
-  ['Schifflange','Kayl','Rumelange'],
-  ['Luxembourg','Leudelange','Dippach','Käerjeng','Pétange']
-];
-var TRAM_QUARTIERS = ['Kirchberg','Pfaffenthal','Ville Haute','Gare','North Bonnevoie-Verlorenkost','Gasperich'];
-
-var transitGroup = L.layerGroup();
-(function buildTransitOverlay(){
-  // rail lines (schematic polylines through commune centroids)
-  RAIL_LINES.forEach(function(line){
-    var pts = line.map(function(n){ return COMMUNES[n] ? [COMMUNES[n].centroid[0], COMMUNES[n].centroid[1]] : null; })
-                   .filter(function(p){ return p; });
-    if(pts.length>1){
-      L.polyline(pts, {color:'#6fa8c9', weight:2.2, opacity:0.7, dashArray:'1,6', lineCap:'round', interactive:false}).addTo(transitGroup);
-    }
+// ---------- transit overlays ----------
+// Real route geometry from Luxembourg's national GTFS feed (data.public.lu):
+// every route shape, Douglas-Peucker-simplified and de-duplicated into a network
+// of polylines per mode (see data/transit_network.json). Rail additionally keeps
+// station markers sized by real 2022 CFL ridership. Each mode is an independent,
+// separately-toggleable layer. Dedicated panes fix draw order so dense bus lines
+// sit under tram, and tram under rail, whatever order the toggles are switched in.
+var TRANSIT_STYLE = {
+  bus:  {color:'#6bbfa0', weight:1,   opacity:0.36, z:411},
+  tram: {color:'#d9789f', weight:3,   opacity:0.9,  z:412},
+  rail: {color:'#6fa8c9', weight:2.4, opacity:0.85, z:413}
+};
+function buildNetworkGroup(mode){
+  var st = TRANSIT_STYLE[mode], pane = mode+'Pane';
+  map.createPane(pane);
+  map.getPane(pane).style.zIndex = st.z;
+  var g = L.layerGroup();
+  (TRANSIT_NETWORK[mode] || []).forEach(function(path){
+    L.polyline(path, {pane:pane, color:st.color, weight:st.weight, opacity:st.opacity,
+      lineCap:'round', lineJoin:'round', interactive:false}).addTo(g);
   });
-  // rail stations (real ridership, sized log-scale)
-  var maxPax = 0;
-  for(var n in COMMUNES){ if(COMMUNES[n].rail_passengers_2022>maxPax) maxPax = COMMUNES[n].rail_passengers_2022; }
-  for(var name in COMMUNES){
-    var c = COMMUNES[name];
-    if(!c.has_rail_station) continue;
-    var r = 3 + 7*(Math.log10(c.rail_passengers_2022+1)/Math.log10(maxPax+1));
-    var m = L.circleMarker([c.centroid[0], c.centroid[1]], {
-      radius:r, weight:1.2, color:'#12161d', fillColor:'#6fa8c9', fillOpacity:0.95
+  return g;
+}
+var networkGroups = {
+  bus:  buildNetworkGroup('bus'),
+  tram: buildNetworkGroup('tram'),
+  rail: buildNetworkGroup('rail')
+};
+(function buildRailStations(){
+  // Real CFL station points from the national GTFS stops (see data/rail_stations.json):
+  // each marker sits on the actual station location so it lands on the drawn rail line,
+  // and is sized log-scale by scheduled trains/day at that station (representative
+  // weekday, same feed as the geometry). A few cross-border/branch halts show no service
+  // on the sample summer weekday; they're kept at minimum size and labelled honestly.
+  var pane = 'railPane';
+  var maxDep = 0;
+  (RAIL_STATIONS || []).forEach(function(s){ if(s.dep_day>maxDep) maxDep = s.dep_day; });
+  (RAIL_STATIONS || []).forEach(function(s){
+    var r = s.dep_day>0
+      ? 3 + 7*(Math.log10(s.dep_day+1)/Math.log10(maxDep+1))
+      : 2.5;
+    var m = L.circleMarker([s.lat, s.lon], {
+      pane:pane, radius:r, weight:1.2, color:'#12161d', fillColor:'#6fa8c9',
+      fillOpacity: s.dep_day>0 ? 0.95 : 0.55
     });
-    m.bindTooltip(name+' \u2014 '+c.rail_passengers_2022.toLocaleString('en-US')+' riders/yr (2022)', {sticky:true, className:'lx-tip'});
+    var label = s.dep_day>0
+      ? s.name+' \u2014 '+s.dep_day.toLocaleString('en-US')+' trains/day'
+      : s.name+' \u2014 no scheduled trains on the sample summer weekday';
+    m.bindTooltip(label, {sticky:true, className:'lx-tip'});
     m.on('click', function(e){ L.DomEvent.stopPropagation(e); });
-    m.addTo(transitGroup);
-  }
-  // tram line + stops
-  var tramPts = TRAM_QUARTIERS.map(function(n){ return QUARTIERS[n] ? [QUARTIERS[n].lat, QUARTIERS[n].lon] : null; }).filter(function(p){ return p; });
-  if(tramPts.length>1){
-    L.polyline(tramPts, {color:'#d9789f', weight:2.6, opacity:0.85, lineCap:'round', interactive:false}).addTo(transitGroup);
-  }
-  TRAM_QUARTIERS.forEach(function(name){
-    var q = QUARTIERS[name];
-    if(!q) return;
-    var m = L.circleMarker([q.lat, q.lon], {radius:4.5, weight:1.2, color:'#12161d', fillColor:'#d9789f', fillOpacity:0.95});
-    m.bindTooltip(name+' \u2014 Luxtram stop (schematic)', {sticky:true, className:'lx-tip'});
-    m.on('click', function(e){ L.DomEvent.stopPropagation(e); });
-    m.addTo(transitGroup);
+    m.addTo(networkGroups.rail);
   });
 })();
 
-var transitToggle = document.getElementById('transitToggle');
-var transitLegend = document.getElementById('transitLegend');
-transitToggle.addEventListener('change', function(){
-  if(transitToggle.checked){ transitGroup.addTo(map); transitLegend.style.display='flex'; }
-  else { map.removeLayer(transitGroup); transitLegend.style.display='none'; }
+['bus','tram','rail'].forEach(function(mode){
+  var el = document.getElementById(mode+'Toggle');
+  if(!el) return;
+  el.addEventListener('change', function(){
+    if(el.checked) networkGroups[mode].addTo(map);
+    else map.removeLayer(networkGroups[mode]);
+  });
 });
 
 communeLayer.addTo(map);
@@ -374,6 +373,15 @@ function renderDetail(){
   var amenityRow = obj.grocery_count!=null
       ? row('Nearby (sampled)', obj.grocery_count+' grocery, '+obj.dine_count+' dining/entertainment')
       : row('Nearby (sampled)', 'none found \u2014 density-based estimate used');
+  var transitRow = '';
+  if(obj.transit_dep_day!=null){
+    var modeBits = 'bus '+obj.bus_dep_day.toLocaleString('en-US')
+      + (obj.tram_dep_day ? ' \u00b7 tram '+obj.tram_dep_day.toLocaleString('en-US') : '')
+      + (obj.gtfs_rail_dep_day ? ' \u00b7 rail '+obj.gtfs_rail_dep_day.toLocaleString('en-US') : '');
+    transitRow =
+      row('Transit service', obj.transit_dep_day.toLocaleString('en-US')+' departures/day \u00b7 '+obj.transit_served_stops+' stops') +
+      row('By mode (dep/day)', modeBits);
+  }
   if(type==='commune'){
     subLine = obj.canton + ' canton \u00b7 ' + obj.dist_to_capital_km + ' km from Luxembourg City centre';
     statsHtml =
@@ -382,6 +390,7 @@ function renderDetail(){
       row('Price', fmtPrice(obj.price_m2)) +
       row('Price source', obj.price_source + (obj.price_estimated?' (canton avg. fallback)':'')) +
       amenityRow +
+      transitRow +
       row('Rail station', obj.has_rail_station ? 'yes' : 'no') +
       (obj.has_rail_station ? row('Rail riders (2022)', obj.rail_passengers_2022.toLocaleString('en-US')+'/yr') : '');
   } else {
@@ -392,6 +401,7 @@ function renderDetail(){
       row('Price', fmtPrice(obj.price_m2)) +
       row('Price note', obj.price_note) +
       amenityRow +
+      transitRow +
       (obj.rail_passengers_2022 ? row('Rail riders (2022)', obj.rail_passengers_2022.toLocaleString('en-US')+'/yr') : '');
   }
 
@@ -463,11 +473,11 @@ function scorebar(lbl,score){
 // ---------- footer ----------
 document.getElementById('footNotes').innerHTML =
   'Prices: STATEC / Observatoire de l\u2019Habitat via data.public.lu \u2014 commune layer uses 2020\u201321 notarial/asking prices (relative ranking; Luxembourg-wide levels have shifted since, roughly \u201310 to +5% depending on year), filled with canton averages where a commune had too few sales. Quartier layer uses Immotop.lu quarterly reports (2023\u20132025, mixed vintages, some volatile quarter to quarter). ' +
-  'Connectivity: for the ~39 communes with a CFL train station, this is real 2022 station ridership (Wikipedia/CFL, log-scaled, summed where a commune has several stations) blended 62/38 with distance-to-capital; communes with no station are scored on distance alone. It measures how easily a commune reaches Luxembourg City by rail, not how many stops a local bus network has \u2014 no public bus-stop-location or GTFS-frequency dataset was reachable from this tool (the official GTFS feed and OSM/Overpass are both on domains this sandbox can\u2019t fetch), so local bus density inside a commune is not modelled. ' +
+  'Connectivity: real public-transport service level from Luxembourg\u2019s national GTFS feed (data.public.lu). Every scheduled departure on a representative weekday (Wed 22 Jul 2026) was counted at each stop across all modes \u2014 RGTR + AVL + TICE bus, Luxtram, and CFL rail \u2014 and every stop assigned to its commune/quartier by point-in-polygon against the boundary layers (~360k departures nationally). The score is log-scaled departures/day blended 65/35 with distance-to-capital, so heavily-bused suburbs no longer look disconnected just for lacking a train station, and a rural halt with a handful of daily trains no longer outranks them. Caveat: the current feed covers the summer-holiday period, so school-only lines and some reduced summer schedules understate term-time service in a few rural communes. ' +
   'Amenities: real grocery-store and dining/entertainment counts from Google Places, geometrically matched to the correct commune or quartier (not just wherever the search happened to be aimed \u2014 results spill across boundaries, so every place was placed by its real coordinates). This only covers a sampled subset \u2014 the ~35 largest communes and the busiest few quartiers \u2014 not an exhaustive census; smaller places may have local shops this sample missed. Areas with no sampled data get an estimate from the (weak, R\u00b2\u22480.24) relationship between population density and amenity count observed in the sampled areas, clearly marked as such in each area\u2019s detail panel. ' +
   'Safety/reputation: no official Luxembourg crime dataset is published below the national level, so this blends two real sources \u2014 Numbeo\u2019s crowdsourced Safety Index (perception survey, shown with its contributor count; only ~10 communes have enough responses to be meaningful, mostly the larger towns) and, for Luxembourg City, the government\u2019s own 2025 \u201cDrogend\u00ebsch 2.0\u201d anti-drug plan, which names Gare, Bonnevoie and Hollerich as a documented hotspot (35% of city police patrols concentrated there). Everywhere else has no data \u2014 rate it yourself to fold your own judgment into the combined score; your rating always overrides the public data where both exist, and is stored only on this device. ' +
   'Country boundaries are simplified and merged to match the current 100 communes. City quartier boundaries are not the official VDL polygons \u2014 that data exists but wasn\u2019t retrievable from this tool\u2019s sandbox \u2014 they\u2019re a Voronoi tessellation built from each quartier\u2019s real centre point and clipped to the real city outline, so borders are approximate even though the overall shape and coverage are accurate. ' +
-  'Transit overlay: rail stations and their sizes are real (2022 CFL passenger counts), but plotted at commune/quartier centroids rather than surveyed station coordinates, and the lines connecting them follow the real line sequence schematically rather than actual track geometry. Bus (RGTR/AVL) isn\u2019t shown at all \u2014 the national GTFS feed and OpenStreetMap/Overpass, the two sources that would have it, are both on domains this sandbox can\u2019t reach.';
+  'Transit overlays: three independently-toggleable layers \u2014 bus, tram, and rail \u2014 drawn from real GTFS route geometry (each shape Douglas-Peucker-simplified and de-duplicated into a network of polylines). Cross-border tails toward Trier, Thionville and Arlon are real, not artefacts. Rail additionally shows station markers placed at their real GTFS coordinates \u2014 so they sit on the line \u2014 and sized by scheduled trains/day at each station. The same GTFS data drives the connectivity score above (via departures/day).';
 
 
 // ---------- init ----------

@@ -30,7 +30,7 @@
         <div class="layer-tabs" id="layerTabs">
           <button data-layer="combined" class="active"><span class="k">Combined</span><span class="v">weighted score</span></button>
           <button data-layer="afford"><span class="k">Affordability</span><span class="v">price / m²</span></button>
-          <button data-layer="connect"><span class="k">Connectivity</span><span class="v">rail ridership + distance</span></button>
+          <button data-layer="connect"><span class="k">Connectivity</span><span class="v">transit departures/day + distance</span></button>
           <button data-layer="amenity"><span class="k">Amenities</span><span class="v">real stores + dining (sampled)</span></button>
           <button data-layer="safety"><span class="k">Safety / rep.</span><span class="v">Numbeo + your ratings</span></button>
         </div>
@@ -50,19 +50,32 @@
       </div>
 
       <div>
-        <p class="section-label">Overlay</p>
+        <p class="section-label">Transit network</p>
         <label class="toggle-row">
-          <input type="checkbox" id="transitToggle">
+          <input type="checkbox" id="busToggle">
+          <span class="swatch sw-bus"></span>
           <span class="toggle-text">
-            <span class="k">Rail &amp; tram network</span>
-            <span class="v">real stations + ridership, schematic routes</span>
+            <span class="k">Bus routes</span>
+            <span class="v">RGTR · AVL · TICE — real GTFS geometry</span>
           </span>
         </label>
-        <div id="transitLegend" class="transit-legend" style="display:none;">
-          <div><span class="dot dot-rail"></span>CFL rail line (schematic) &amp; stations, sized by 2022 ridership</div>
-          <div><span class="dot dot-tram"></span>Luxtram line (schematic) &amp; stops</div>
-          <div class="transit-note">Bus (RGTR/AVL) isn't shown — no public stop/route dataset was reachable from this tool. See footer.</div>
-        </div>
+        <label class="toggle-row">
+          <input type="checkbox" id="tramToggle">
+          <span class="swatch sw-tram"></span>
+          <span class="toggle-text">
+            <span class="k">Tram route</span>
+            <span class="v">Luxtram — real GTFS geometry</span>
+          </span>
+        </label>
+        <label class="toggle-row">
+          <input type="checkbox" id="railToggle">
+          <span class="swatch sw-rail"></span>
+          <span class="toggle-text">
+            <span class="k">Rail lines + stations</span>
+            <span class="v">CFL — real GTFS geometry · stations sized by trains/day</span>
+          </span>
+        </label>
+        <div class="transit-note">Real route geometry from the national GTFS feed. Cross-border tails (toward Trier, Thionville, Arlon) are real. See footer.</div>
       </div>
 
       <div>
