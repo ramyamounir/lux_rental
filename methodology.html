@@ -6,7 +6,7 @@
 <title>Data &amp; Methodology — Luxembourg Rental Explorer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=7">
 <style>
   body{ overflow-y:auto; }
   .doc{
@@ -151,13 +151,17 @@
   <div class="callout">One deliberate filter: OSM tags thousands of <em>private</em> gardens and backyard swimming pools as <code>leisure</code>. Those are excluded — the parks/sports category counts only real public facilities (parks, sports centres, fitness centres, stadiums). OSM coverage in Luxembourg is very good but community-maintained, so a brand-new shop may lag reality by a little.</div>
 
   <h2><span class="n">05</span>Safety / Reputation</h2>
-  <p>No official Luxembourg crime dataset is published below the national level — the Police Grand-Ducale only releases country-wide annual totals. This layer blends the best real substitutes found:</p>
+  <p>Luxembourg publishes no crime statistics below the national level. We checked directly: the Police Grand-Ducale's annual <i>"chiffres de la délinquance"</i> and the full 148-page activity report give country-wide totals only, plus an organisational map of 4 police regions with <em>no</em> crime figures attached; the national open-data portal entry is just a link to that PDF. There is no per-region, per-canton, or per-commune crime dataset to map. Luxembourg is also consistently ranked among the safest countries in the world.</p>
+  <p>So rather than fabricate a crime rate for 124 areas, this layer <b>inverts the question</b>: every commune and quartier is presumed <b>generally safe (baseline 90/100)</b>, and an area is only marked down where a specific problem is <b>documented</b> in official sources or the press. A low score therefore means "there is a known, reported problem here," not a precise ranking.</p>
+  <p>Documented markdowns from a 2024&ndash;25 review of government sources and Luxembourg press:</p>
   <ul>
-    <li><b>Numbeo Safety Index</b> — a crowdsourced perception survey. Only about 10 communes had enough contributors (as few as 4, as many as 177 for the capital) to be shown; each score displays its contributor count so you can judge confidence yourself.</li>
-    <li><b>A documented hotspot for Luxembourg City</b> — in May 2025 the government launched an official "Drogendësch 2.0" anti-drug action plan naming the Gare, Bonnevoie, and Hollerich quartiers specifically, backed by a real figure: 35% of all city police patrols were concentrated in those three quartiers in early 2025. That's a government-published fact, not a perception score, and those quartiers carry a fixed penalty as a result.</li>
-    <li><b>Your own rating</b> — anywhere without public data can be rated 1&ndash;5 stars directly in the map. Your rating always overrides the public data where both exist for that area, and is stored only in your browser (<code>localStorage</code>-equivalent via the map's own storage), never sent anywhere.</li>
+    <li><b>Luxembourg City &mdash; Gare quartier (22)</b> — the country's most-documented problem area and the focus of the government's official <b>"Drogendësch 2.0"</b> action plan (May 2025): open drug dealing, homelessness and prostitution concentrated around Rue de Strasbourg and Rue Joseph Junck; the Gare/Hollerich commissariat was made 24/7.</li>
+    <li><b>Hollerich (45) and North / South Bonnevoie (48)</b> — the rest of that same enforcement zone; the government reports <b>35% of all city police patrols</b> concentrate in Gare/Hollerich/Bonnevoie.</li>
+    <li><b>Commune of Luxembourg (68)</b> — hosts those hotspots but is large and mostly safe (Belair, Limpertsberg, Kirchberg…), so the commune-wide markdown is mild.</li>
+    <li><b>Esch-sur-Alzette (58)</b> — documented reputation for insecurity (press, 2025) with drug trafficking concentrated in the Brill quarter and around Rue du Canal / Avenue de la Gare.</li>
+    <li><b>Ettelbruck (72)</b> — its commissariat was converted to 24/7 under Drogendësch (2025) over documented drug-related concerns; problems far more contained than the capital or Esch.</li>
   </ul>
-  <div class="callout">Everywhere else defaults to a neutral midpoint until you rate it. That's a deliberate choice — better to show "no data" than to fabricate a number.</div>
+  <div class="callout">Everywhere else stays at the safe baseline. This makes the layer deliberately near-flat &mdash; that reflects reality &mdash; and it errs toward calling an area safe rather than inventing suspicion. It is a documented-incident model, not a measured crime rate.</div>
 
   <h2><span class="n">06</span>Combined score</h2>
   <p>The four layers are combined as a weighted average, with weights you control via the sliders in the map:</p>
@@ -173,8 +177,8 @@
     <tr><td class="lbl">Rail station markers (overlay: coords + size)</td><td>National GTFS feed, data.public.lu (station coordinates + trains/day)</td><td>Jul 2026 (summer schedule)</td></tr>
     <tr><td class="lbl">Rail ridership (detail panel stat)</td><td>CFL / ODM, via Wikipedia</td><td>2022</td></tr>
     <tr><td class="lbl">Amenities (~7,700 POIs, 9 categories)</td><td>OpenStreetMap via Overpass API</td><td>Jul 2026</td></tr>
-    <tr><td class="lbl">Safety (Numbeo)</td><td>Numbeo crowdsourced survey</td><td>2024&ndash;2026 (rolling, varies by commune)</td></tr>
-    <tr><td class="lbl">Safety (hotspot)</td><td>Luxembourg government, "Drogendësch 2.0"</td><td>May 2025</td></tr>
+    <tr><td class="lbl">Safety (baseline)</td><td>Presumed safe unless documented (inverted model)</td><td>&mdash;</td></tr>
+    <tr><td class="lbl">Safety (markdowns)</td><td>Luxembourg govt "Drogendësch 2.0" + Luxembourg press review</td><td>2024&ndash;2025</td></tr>
     <tr><td class="lbl">Population / area</td><td>Wikipedia (STATEC-sourced)</td><td>2025&ndash;2026</td></tr>
     <tr><td class="lbl">Commune boundaries</td><td>OpenStreetMap mirror, manually merged</td><td>~2015 geometry, current names</td></tr>
     <tr><td class="lbl">Quartier boundaries</td><td>Voronoi tessellation (derived, not official)</td><td>n/a</td></tr>

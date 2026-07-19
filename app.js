@@ -8,47 +8,7 @@ var state = {
   selected: null,       // {type, name}
   weights: {afford:35, connect:30, amenity:20, safety:15}
 };
-var safetyRatings = {}; // key: type_slug -> 1..5
-
 function slug(name){ return name.replace(/\s+/g,'_'); }
-function ratingKey(type,name){ return 'safety_' + type + '_' + slug(name); }
-
-// ---------- storage ----------
-async function loadAllSafetyRatings(){
-  if(!window.storage) return;
-  try{
-    var list = await window.storage.list('safety_', false);
-    if(list && list.keys){
-      for(var i=0;i<list.keys.length;i++){
-        var k = list.keys[i];
-        try{
-          var r = await window.storage.get(k, false);
-          if(r && r.value!=null) safetyRatings[k] = JSON.parse(r.value);
-        }catch(e){ /* ignore missing */ }
-      }
-    }
-  }catch(e){ console.warn('safety ratings load skipped', e); }
-  renderAll();
-}
-
-async function setSafetyRating(type,name,val){
-  var key = ratingKey(type,name);
-  safetyRatings[key] = val;
-  if(window.storage){
-    try{ await window.storage.set(key, JSON.stringify(val), false); }
-    catch(e){ console.warn('could not save rating', e); }
-  }
-  renderAll();
-}
-
-async function clearSafetyRating(type,name){
-  var key = ratingKey(type,name);
-  delete safetyRatings[key];
-  if(window.storage){
-    try{ await window.storage.delete(key, false); }catch(e){}
-  }
-  renderAll();
-}
 
 // ---------- color scale ----------
 var STOPS = [
@@ -74,26 +34,23 @@ function scoreToColor(score){
 }
 
 // ---------- scoring ----------
+// Inverted model: every area is "presumed safe" (baseline 90) unless a documented
+// crime concentration was found; those carry a lower score. Always non-null now.
 function getSafetyScore(type,name,obj){
-  var userRating = safetyRatings[ratingKey(type,name)];
-  if(userRating!=null) return (userRating-1)/4*100;
-  if(obj && obj.score_safety!=null) return obj.score_safety;
-  return null;
+  return (obj && obj.score_safety!=null) ? obj.score_safety : 90;
 }
 function combinedScore(obj,type,name){
   var w = state.weights;
   var total = w.afford + w.connect + w.amenity + w.safety;
   if(total<=0) return 50;
-  var safetyVal = getSafetyScore(type,name,obj);
-  var safetyForCalc = safetyVal==null ? 50 : safetyVal;
   return (obj.score_afford*w.afford + obj.score_connect*w.connect +
-          obj.score_amenity*w.amenity + safetyForCalc*w.safety) / total;
+          obj.score_amenity*w.amenity + getSafetyScore(type,name,obj)*w.safety) / total;
 }
 function scoreFor(obj,type,name,layer){
   if(layer==='afford') return obj.score_afford;
   if(layer==='connect') return obj.score_connect;
   if(layer==='amenity') return obj.score_amenity;
-  if(layer==='safety'){ var s=getSafetyScore(type,name,obj); return s==null?50:s; }
+  if(layer==='safety') return getSafetyScore(type,name,obj);
   return combinedScore(obj,type,name);
 }
 
@@ -350,7 +307,7 @@ var LAYER_LABELS = {
   afford:'Cheapest areas',
   connect:'Best connected',
   amenity:'Most amenities (real OSM POIs)',
-  safety:'Safest (data + your ratings)'
+  safety:'Safest (fewest documented issues)'
 };
 
 function renderTopList(){
@@ -457,25 +414,17 @@ function renderDetail(){
     scorebar('Afford.', obj.score_afford) +
     scorebar('Connect.', obj.score_connect) +
     scorebar('Amenities', obj.score_amenity) +
-    scorebar('Safety', effSafety==null ? 50 : effSafety) +
+    scorebar('Safety', effSafety) +
     scorebar('Combined', combined);
 
-  var curRating = safetyRatings[ratingKey(type,name)] || 0;
-  var safetyNoteHtml = '';
-  if(obj.safety_source){
-    safetyNoteHtml = '<div class="sub" style="margin:6px 0 10px 0; line-height:1.5;">' +
-      (obj.score_safety!=null ? '<b style="color:var(--gold-bright);font-family:\'IBM Plex Mono\';">'+Math.round(obj.score_safety)+'/100</b> \u2014 ' : '') +
-      obj.safety_source + '</div>';
-  } else {
-    safetyNoteHtml = '<div class="sub" style="margin:6px 0 10px 0;">No public safety/crime data found for this area \u2014 rate it yourself below.</div>';
-  }
-
-  var starsHtml = '<div class="stars">';
-  for(var i=1;i<=5;i++){
-    starsHtml += '<button data-n="'+i+'" class="'+(i<=curRating?'on':'')+'">\u2605</button>';
-  }
-  starsHtml += '</div>';
-  if(curRating>0) starsHtml += '<button class="clear-rating" id="clearRatingBtn">clear rating</button>';
+  var documented = obj.safety_basis === 'documented';
+  var safetyTag = documented
+    ? '<span style="color:var(--red-flag);font-weight:600;">Documented issue</span>'
+    : '<span style="color:var(--gold-bright);font-weight:600;">No documented issues</span>';
+  var safetyNoteHtml = '<div class="sub" style="margin:6px 0 4px 0; line-height:1.5;">' +
+    '<b style="color:'+(documented?'var(--red-flag)':'var(--gold-bright)')+';font-family:\'IBM Plex Mono\';">'+
+      Math.round(effSafety)+'/100</b> \u00b7 ' + safetyTag + ' \u2014 ' +
+    (obj.safety_source || '') + '</div>';
 
   det.innerHTML =
     '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
@@ -488,20 +437,9 @@ function renderDetail(){
     statsHtml +
     '<div class="scorebar-wrap">'+bars+'</div>' +
     '<p class="section-label" style="margin-top:10px;">Safety / reputation</p>' +
-    safetyNoteHtml +
-    '<p class="section-label">Your rating (overrides the above in the combined score, saved on this device)</p>' +
-    starsHtml;
+    safetyNoteHtml;
 
   document.getElementById('clearSelBtn').addEventListener('click', clearSelection);
-
-  det.querySelectorAll('.stars button').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var n = parseInt(btn.getAttribute('data-n'),10);
-      setSafetyRating(type,name,n);
-    });
-  });
-  var clearBtn = document.getElementById('clearRatingBtn');
-  if(clearBtn) clearBtn.addEventListener('click', function(){ clearSafetyRating(type,name); });
 
   flyTo(type,name);
 }
@@ -521,13 +459,12 @@ document.getElementById('footNotes').innerHTML =
   'Prices: STATEC / Observatoire de l\u2019Habitat via data.public.lu \u2014 commune layer uses 2020\u201321 notarial/asking prices (relative ranking; Luxembourg-wide levels have shifted since, roughly \u201310 to +5% depending on year), filled with canton averages where a commune had too few sales. Quartier layer uses Immotop.lu quarterly reports (2023\u20132025, mixed vintages, some volatile quarter to quarter). ' +
   'Connectivity: real public-transport service level from Luxembourg\u2019s national GTFS feed (data.public.lu). Every scheduled departure on a representative weekday (Wed 22 Jul 2026) was counted at each stop across all modes \u2014 RGTR + AVL + TICE bus, Luxtram, and CFL rail \u2014 and every stop assigned to its commune/quartier by point-in-polygon against the boundary layers (~360k departures nationally). The score is log-scaled departures/day blended 65/35 with distance-to-capital, so heavily-bused suburbs no longer look disconnected just for lacking a train station, and a rural halt with a handful of daily trains no longer outranks them. Caveat: the current feed covers the summer-holiday period, so school-only lines and some reduced summer schedules understate term-time service in a few rural communes. ' +
   'Amenities: a real census of ~7,700 points of interest from OpenStreetMap (via the Overpass API), replacing the old sampled/estimated model. Every POI is placed by its true coordinates into the correct commune or quartier by point-in-polygon, and sorted into nine categories \u2014 groceries/food shops, restaurants/caf\u00e9s/bars, retail shops, healthcare, pharmacies, schools/childcare, banks/ATMs, gas stations, and parks/sports. The score is a weighted blend of the (log-scaled) count in each category, min-max normalised within each layer, so amenity-dense towns rank high and thin rural communes rank low on real counts rather than a density guess. Each category can be toggled on the map as its own point layer. Caveats: OSM coverage is community-maintained (very good in Luxembourg but not perfect), and \u201cleisure\u201d is deliberately limited to real public parks/sports facilities \u2014 the thousands of private gardens and backyard pools OSM also tags as leisure are excluded. ' +
-  'Safety/reputation: no official Luxembourg crime dataset is published below the national level, so this blends two real sources \u2014 Numbeo\u2019s crowdsourced Safety Index (perception survey, shown with its contributor count; only ~10 communes have enough responses to be meaningful, mostly the larger towns) and, for Luxembourg City, the government\u2019s own 2025 \u201cDrogend\u00ebsch 2.0\u201d anti-drug plan, which names Gare, Bonnevoie and Hollerich as a documented hotspot (35% of city police patrols concentrated there). Everywhere else has no data \u2014 rate it yourself to fold your own judgment into the combined score; your rating always overrides the public data where both exist, and is stored only on this device. ' +
+  'Safety/reputation: Luxembourg publishes no crime statistics below the national level (the police reports are country-wide totals plus an org-chart of 4 police regions \u2014 no per-commune or per-region figures exist), and it is one of the safest countries in the world. So instead of inventing a crime rate everywhere, this layer inverts the problem: every commune and quartier is treated as generally safe (baseline 90/100) unless a specific problem is documented in official sources or the press, in which case it is marked down. Documented markdowns (2024\u201325 review): in the capital, the Gare quartier (22) \u2014 the government\u2019s \u201cDrogend\u00ebsch 2.0\u201d action plan (May 2025) over open drug dealing, homelessness and prostitution around Rue de Strasbourg / Rue Joseph Junck \u2014 plus Hollerich (45) and North/South Bonnevoie (48), the rest of that enforcement zone (35% of all city police patrols); at commune level, Luxembourg (68, hosts those hotspots but is mostly safe), Esch-sur-Alzette (58, documented insecurity and Brill-quarter drug trafficking) and Ettelbruck (72, commissariat made 24/7 under Drogend\u00ebsch). Everywhere else stays at the safe baseline. This means the layer is deliberately near-flat \u2014 that reflects reality \u2014 and it errs toward calling an area safe rather than fabricating suspicion. It is a documented-incident model, not a measured crime rate, so treat a low score as \u201cthere is a known, reported problem here,\u201d not as a precise ranking. ' +
   'Country boundaries are simplified and merged to match the current 100 communes. City quartier boundaries are not the official VDL polygons \u2014 that data exists but wasn\u2019t retrievable from this tool\u2019s sandbox \u2014 they\u2019re a Voronoi tessellation built from each quartier\u2019s real centre point and clipped to the real city outline, so borders are approximate even though the overall shape and coverage are accurate. ' +
   'Transit overlays: three independently-toggleable layers \u2014 bus, tram, and rail \u2014 drawn from real GTFS route geometry (each shape Douglas-Peucker-simplified and de-duplicated into a network of polylines). Cross-border tails toward Trier, Thionville and Arlon are real, not artefacts. Rail additionally shows station markers placed at their real GTFS coordinates \u2014 so they sit on the line \u2014 and sized by scheduled trains/day at each station. The same GTFS data drives the connectivity score above (via departures/day).';
 
 
 // ---------- init ----------
-loadAllSafetyRatings();
 renderAll();
 
 })();

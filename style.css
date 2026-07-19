@@ -303,17 +303,6 @@
   }
   .scorebar .num{ font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--text-dimmer); width:26px; text-align:right; flex-shrink:0;}
 
-  .stars{ display:flex; gap:3px; margin-top:4px;}
-  .stars button{
-    background:none; border:none; cursor:pointer; padding:2px;
-    font-size:16px; color:var(--slate); line-height:1;
-  }
-  .stars button.on{ color:var(--gold); }
-  .clear-rating{
-    font-size:10px; color:var(--text-dimmer); background:none; border:none;
-    text-decoration:underline; cursor:pointer; padding:0; margin-top:4px;
-  }
-
   #toplist{ display:flex; flex-direction:column; gap:0; }
   .top-item{
     display:flex;

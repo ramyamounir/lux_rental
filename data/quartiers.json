@@ -13,8 +13,8 @@
 "rail_passengers_2022": null,
 "score_connect": 96.4,
 "score_amenity": 92.4,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 22,
 "dine_count": 185,
@@ -35,7 +35,8 @@
 "bank": 31,
 "leisure": 10
 },
-"amenity_total": 618
+"amenity_total": 618,
+"safety_basis": "baseline"
 },
 "Gare": {
 "population": 11292,
@@ -51,8 +52,8 @@
 "rail_passengers_2022": 15765929,
 "score_connect": 89.8,
 "score_amenity": 100.0,
-"score_safety": 28.0,
-"safety_source": "Documented drug-crime hotspot: subject of the government's \"Drogendësch 2.0\" anti-drug action plan (May 2025); 35% of all Luxembourg City police patrols were concentrated in Gare/Hollerich/Bonnevoie in early 2025, per the government's own figures.",
+"score_safety": 22,
+"safety_source": "Luxembourg’s single most-documented problem area — the focus of the government’s “Drogendësch 2.0” plan (May 2025). Open drug dealing, rising homelessness and prostitution around Rue de Strasbourg and Rue Joseph Junck; the Gare/Hollerich commissariat was made 24/7, and 35% of all city police patrols concentrate here and in Bonnevoie.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 33,
 "dine_count": 175,
@@ -73,7 +74,8 @@
 "bank": 14,
 "leisure": 10
 },
-"amenity_total": 424
+"amenity_total": 424,
+"safety_basis": "documented"
 },
 "North Bonnevoie-Verlorenkost": {
 "population": 4581,
@@ -89,8 +91,8 @@
 "rail_passengers_2022": null,
 "score_connect": 35.6,
 "score_amenity": 9.7,
-"score_safety": 28.0,
-"safety_source": "Documented drug-crime hotspot: subject of the government's \"Drogendësch 2.0\" anti-drug action plan (May 2025); 35% of all Luxembourg City police patrols were concentrated in Gare/Hollerich/Bonnevoie in early 2025, per the government's own figures.",
+"score_safety": 48,
+"safety_source": "Named in the government’s “Drogendësch 2.0” plan (2025) alongside Gare and Hollerich; drug-crime pressure spilling east from the station district. 35% of city police patrols cover Gare/Hollerich/Bonnevoie.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 1,
 "dine_count": 2,
@@ -111,7 +113,8 @@
 "bank": 0,
 "leisure": 4
 },
-"amenity_total": 11
+"amenity_total": 11,
+"safety_basis": "documented"
 },
 "South Bonnevoie": {
 "population": 13428,
@@ -127,8 +130,8 @@
 "rail_passengers_2022": null,
 "score_connect": 70.6,
 "score_amenity": 65.5,
-"score_safety": 28.0,
-"safety_source": "Documented drug-crime hotspot: subject of the government's \"Drogendësch 2.0\" anti-drug action plan (May 2025); 35% of all Luxembourg City police patrols were concentrated in Gare/Hollerich/Bonnevoie in early 2025, per the government's own figures.",
+"score_safety": 48,
+"safety_source": "Named in the government’s “Drogendësch 2.0” plan (2025) alongside Gare and Hollerich; drug-crime pressure spilling east from the station district. 35% of city police patrols cover Gare/Hollerich/Bonnevoie.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 11,
 "dine_count": 40,
@@ -149,7 +152,8 @@
 "bank": 3,
 "leisure": 3
 },
-"amenity_total": 116
+"amenity_total": 116,
+"safety_basis": "documented"
 },
 "Cents": {
 "population": 6618,
@@ -165,8 +169,8 @@
 "rail_passengers_2022": 51660,
 "score_connect": 71.4,
 "score_amenity": 60.1,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 8,
 "dine_count": 23,
@@ -187,7 +191,8 @@
 "bank": 12,
 "leisure": 10
 },
-"amenity_total": 76
+"amenity_total": 76,
+"safety_basis": "baseline"
 },
 "Cessange": {
 "population": 5214,
@@ -203,8 +208,8 @@
 "rail_passengers_2022": null,
 "score_connect": 48.0,
 "score_amenity": 25.0,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 2,
 "dine_count": 10,
@@ -225,7 +230,8 @@
 "bank": 1,
 "leisure": 13
 },
-"amenity_total": 32
+"amenity_total": 32,
+"safety_basis": "baseline"
 },
 "Clausen": {
 "population": 1050,
@@ -241,8 +247,8 @@
 "rail_passengers_2022": null,
 "score_connect": 53.3,
 "score_amenity": 41.2,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 3,
 "dine_count": 27,
@@ -263,7 +269,8 @@
 "bank": 3,
 "leisure": 4
 },
-"amenity_total": 52
+"amenity_total": 52,
+"safety_basis": "baseline"
 },
 "Dommeldange": {
 "population": 3106,
@@ -279,8 +286,8 @@
 "rail_passengers_2022": 399035,
 "score_connect": 29.0,
 "score_amenity": 27.8,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 3,
 "dine_count": 13,
@@ -301,7 +308,8 @@
 "bank": 1,
 "leisure": 1
 },
-"amenity_total": 26
+"amenity_total": 26,
+"safety_basis": "baseline"
 },
 "Eich": {
 "population": 3079,
@@ -317,8 +325,8 @@
 "rail_passengers_2022": null,
 "score_connect": 46.3,
 "score_amenity": 32.3,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 1,
 "dine_count": 9,
@@ -339,7 +347,8 @@
 "bank": 2,
 "leisure": 2
 },
-"amenity_total": 30
+"amenity_total": 30,
+"safety_basis": "baseline"
 },
 "Gasperich": {
 "population": 10282,
@@ -355,8 +364,8 @@
 "rail_passengers_2022": null,
 "score_connect": 76.9,
 "score_amenity": 61.4,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 11,
 "dine_count": 19,
@@ -377,7 +386,8 @@
 "bank": 10,
 "leisure": 10
 },
-"amenity_total": 96
+"amenity_total": 96,
+"safety_basis": "baseline"
 },
 "Grund": {
 "population": 983,
@@ -393,8 +403,8 @@
 "rail_passengers_2022": null,
 "score_connect": 61.3,
 "score_amenity": 38.7,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 1,
 "dine_count": 58,
@@ -415,7 +425,8 @@
 "bank": 2,
 "leisure": 13
 },
-"amenity_total": 93
+"amenity_total": 93,
+"safety_basis": "baseline"
 },
 "Hamm": {
 "population": 1606,
@@ -431,8 +442,8 @@
 "rail_passengers_2022": null,
 "score_connect": 36.5,
 "score_amenity": 18.7,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 2,
 "dine_count": 3,
@@ -453,7 +464,8 @@
 "bank": 1,
 "leisure": 3
 },
-"amenity_total": 17
+"amenity_total": 17,
+"safety_basis": "baseline"
 },
 "Hollerich": {
 "population": 7751,
@@ -469,8 +481,8 @@
 "rail_passengers_2022": 256011,
 "score_connect": 69.7,
 "score_amenity": 51.0,
-"score_safety": 28.0,
-"safety_source": "Documented drug-crime hotspot: subject of the government's \"Drogendësch 2.0\" anti-drug action plan (May 2025); 35% of all Luxembourg City police patrols were concentrated in Gare/Hollerich/Bonnevoie in early 2025, per the government's own figures.",
+"score_safety": 45,
+"safety_source": "Part of the Gare/Hollerich enforcement zone under “Drogendësch 2.0” (2025); documented degraded pockets along the Hollerich–Belair axis (squats, spillover from the station). Note: adjacent Belair is among the city’s most sought-after, safest districts.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 4,
 "dine_count": 20,
@@ -491,7 +503,8 @@
 "bank": 1,
 "leisure": 9
 },
-"amenity_total": 74
+"amenity_total": 74,
+"safety_basis": "documented"
 },
 "Kirchberg": {
 "population": 10982,
@@ -507,8 +520,8 @@
 "rail_passengers_2022": null,
 "score_connect": 75.8,
 "score_amenity": 58.4,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 3,
 "dine_count": 34,
@@ -529,7 +542,8 @@
 "bank": 9,
 "leisure": 9
 },
-"amenity_total": 118
+"amenity_total": 118,
+"safety_basis": "baseline"
 },
 "Limpertsberg": {
 "population": 11593,
@@ -544,8 +558,8 @@
 "rail_passengers_2022": null,
 "score_connect": 75.3,
 "score_amenity": 67.3,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 8,
 "dine_count": 40,
@@ -566,7 +580,8 @@
 "bank": 8,
 "leisure": 9
 },
-"amenity_total": 109
+"amenity_total": 109,
+"safety_basis": "baseline"
 },
 "Merl": {
 "population": 6602,
@@ -582,8 +597,8 @@
 "rail_passengers_2022": null,
 "score_connect": 64.1,
 "score_amenity": 71.1,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 10,
 "dine_count": 33,
@@ -604,7 +619,8 @@
 "bank": 4,
 "leisure": 5
 },
-"amenity_total": 111
+"amenity_total": 111,
+"safety_basis": "baseline"
 },
 "Muhlenbach": {
 "population": 2528,
@@ -620,8 +636,8 @@
 "rail_passengers_2022": null,
 "score_connect": 32.4,
 "score_amenity": 23.5,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 1,
 "dine_count": 4,
@@ -642,7 +658,8 @@
 "bank": 1,
 "leisure": 5
 },
-"amenity_total": 21
+"amenity_total": 21,
+"safety_basis": "baseline"
 },
 "Neudorf-Weimershof": {
 "population": 7178,
@@ -658,8 +675,8 @@
 "rail_passengers_2022": null,
 "score_connect": 35.2,
 "score_amenity": 26.6,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 1,
 "dine_count": 10,
@@ -680,7 +697,8 @@
 "bank": 1,
 "leisure": 1
 },
-"amenity_total": 27
+"amenity_total": 27,
+"safety_basis": "baseline"
 },
 "Pfaffenthal": {
 "population": 1380,
@@ -696,8 +714,8 @@
 "rail_passengers_2022": 1183133,
 "score_connect": 47.3,
 "score_amenity": 0.0,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 0,
 "dine_count": 1,
@@ -718,7 +736,8 @@
 "bank": 0,
 "leisure": 3
 },
-"amenity_total": 6
+"amenity_total": 6,
+"safety_basis": "baseline"
 },
 "Pulvermuhl": {
 "population": 386,
@@ -734,8 +753,8 @@
 "rail_passengers_2022": null,
 "score_connect": 21.0,
 "score_amenity": 14.3,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 5,
 "dine_count": 6,
@@ -756,7 +775,8 @@
 "bank": 0,
 "leisure": 1
 },
-"amenity_total": 14
+"amenity_total": 14,
+"safety_basis": "baseline"
 },
 "Rollingergrund-North Belair": {
 "population": 4898,
@@ -772,8 +792,8 @@
 "rail_passengers_2022": null,
 "score_connect": 52.4,
 "score_amenity": 38.7,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 3,
 "dine_count": 12,
@@ -794,7 +814,8 @@
 "bank": 1,
 "leisure": 4
 },
-"amenity_total": 38
+"amenity_total": 38,
+"safety_basis": "baseline"
 },
 "Belair": {
 "population": 13331,
@@ -810,8 +831,8 @@
 "rail_passengers_2022": null,
 "score_connect": 78.7,
 "score_amenity": 59.5,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 6,
 "dine_count": 18,
@@ -832,7 +853,8 @@
 "bank": 1,
 "leisure": 10
 },
-"amenity_total": 85
+"amenity_total": 85,
+"safety_basis": "baseline"
 },
 "Weimerskirch": {
 "population": 2471,
@@ -848,8 +870,8 @@
 "rail_passengers_2022": null,
 "score_connect": 5.2,
 "score_amenity": 12.9,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 0,
 "dine_count": 3,
@@ -870,7 +892,8 @@
 "bank": 0,
 "leisure": 4
 },
-"amenity_total": 13
+"amenity_total": 13,
+"safety_basis": "baseline"
 },
 "Beggen": {
 "population": 3844,
@@ -886,8 +909,8 @@
 "rail_passengers_2022": null,
 "score_connect": 41.5,
 "score_amenity": 52.2,
-"score_safety": null,
-"safety_source": null,
+"score_safety": 90,
+"safety_source": "No documented crime concentration found in national police reporting or Luxembourg press (2024–25 review). Treated as generally safe — Luxembourg’s nationwide baseline.",
 "amenity_source": "real: OpenStreetMap POIs via Overpass (Jul 2026)",
 "grocery_count": 4,
 "dine_count": 15,
@@ -908,6 +931,7 @@
 "bank": 2,
 "leisure": 5
 },
-"amenity_total": 69
+"amenity_total": 69,
+"safety_basis": "baseline"
 }
 }
