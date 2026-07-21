@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 <div id="app">
@@ -42,6 +42,7 @@
           <button data-layer="connect"><span class="k">Connectivity</span><span class="v">transit departures/day + distance</span></button>
           <button data-layer="amenity"><span class="k">Amenities</span><span class="v">real OSM POIs · 9 categories</span></button>
           <button data-layer="safety"><span class="k">Safety / rep.</span><span class="v">safe by default · documented issues only</span></button>
+          <button data-layer="flood"><span class="k">Flood risk</span><span class="v">100-year flood exposure · dry = gold</span></button>
         </div>
       </div>
 
@@ -68,7 +69,37 @@
             <span class="v">CARTO Voyager — real roads &amp; names beneath the scores</span>
           </span>
         </label>
-        <div class="transit-note">Overlays actual streets so you can place an address pin on the right building. Score colors dim while it's on.</div>
+        <label class="toggle-row">
+          <input type="checkbox" id="altToggle">
+          <span class="swatch sw-altitude"></span>
+          <span class="toggle-text">
+            <span class="k">Altitude (terrain)</span>
+            <span class="v">continuous elevation — green low · brown high, per-pixel</span>
+          </span>
+        </label>
+        <div id="altLegend" class="alt-legend" style="display:none">
+          <div class="legend"><span>~130 m</span><div class="bar alt-bar"></div><span>~560 m</span></div>
+          <div class="transit-note">Real elevation (Terrarium DEM). Click the active layer tab to turn the score colors off and see the terrain clean.</div>
+        </div>
+        <div class="transit-note">Overlays actual streets so you can place an address pin on the right building. Score colors dim while a basemap is on.</div>
+      </div>
+
+      <div>
+        <p class="section-label">Flood hazard</p>
+        <label class="toggle-row">
+          <input type="checkbox" id="floodToggle">
+          <span class="swatch sw-flood"></span>
+          <span class="toggle-text">
+            <span class="k">Flood zones</span>
+            <span class="v">official HWGK 2021 extent · 3 return periods</span>
+          </span>
+        </label>
+        <div class="flood-legend">
+          <span class="fb fb-10"></span><span class="fbl">10-yr</span>
+          <span class="fb fb-100"></span><span class="fbl">100-yr</span>
+          <span class="fb fb-ext"></span><span class="fbl">extreme</span>
+        </div>
+        <div class="transit-note">Real flood-extent polygons from Luxembourg's water authority (Administration de la gestion de l'eau). Darker = floods more often. Also drives the Flood-risk score layer and the address pin's flood check.</div>
       </div>
 
       <div>
@@ -132,7 +163,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="data.js?v=9"></script>
-<script src="app.js?v=9"></script>
+<script src="data.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

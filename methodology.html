@@ -163,12 +163,21 @@
   </ul>
   <div class="callout">Everywhere else stays at the safe baseline. This makes the layer deliberately near-flat &mdash; that reflects reality &mdash; and it errs toward calling an area safe rather than inventing suspicion. It is a documented-incident model, not a measured crime rate.</div>
 
-  <h2><span class="n">06</span>Combined score</h2>
+  <h2><span class="n">06</span>Flood risk</h2>
+  <p>The source is the official <b>flood-hazard maps (HWGK 2021)</b> from the <b>Administration de la gestion de l'eau</b>, published under the EU Floods Directive on data.public.lu. They map the modelled flood extent of Luxembourg's watercourses at three return periods: <b>frequent (10-year)</b>, <b>medium (100-year)</b> and <b>extreme</b>. The raw data is one large polygon layer per period in Luxembourg's national metric CRS (EPSG:2169).</p>
+  <h3>Per-area score</h3>
+  <p>For each commune and quartier we intersect its boundary with the 100-year hazard polygons (in EPSG:2169, so areas are true square-metres) and take the <b>share of the area inside the zone</b> as its exposure. The layer score is that exposure <b>inverted and min-max normalised within each level</b>, so <b>gold = driest</b> and the few flood-exposed river areas read dark. The detail panel shows the raw exposure for all three periods.</p>
+  <h3>Overlay &amp; address check</h3>
+  <p>The <b>Flood zones</b> overlay draws the real extent of all three bands as translucent blue, nested so the most-often-flooded ground reads darkest. The address pin runs a point-in-polygon test against the same bands and reports which one, if any, contains the exact point &mdash; e.g. <i>"in the 100-year flood zone"</i>.</p>
+  <div class="callout"><b>Caveats:</b> the score aggregates to the whole area, so a mostly-dry commune with one flood-prone valley strip still scores high &mdash; use the overlay and the pin for the local, street-level truth. The overlay polygons are simplified (~16&nbsp;m) to keep the app light, so a pin within a few metres of a zone edge may read either way. And these are fluvial (watercourse) hazard maps &mdash; they do not model pluvial/flash-flood surface runoff.</div>
+
+  <h2><span class="n">07</span>Combined score</h2>
   <p>The four layers are combined as a weighted average, with weights you control via the sliders in the map:</p>
   <p><code>combined = (afford&times;w1 + connect&times;w2 + amenity&times;w3 + safety&times;w4) / (w1+w2+w3+w4)</code></p>
   <p>Default weights are 35 / 30 / 20 / 15 (affordability, connectivity, amenities, safety) — a starting point, not a recommendation. Move them to reflect what actually matters to you; the map, top-picks list, and every score on it update live.</p>
+  <div class="callout"><b>Flood risk is deliberately kept out of this weighted average.</b> High or low altitude and flood exposure aren't &ldquo;good&rdquo; or &ldquo;bad&rdquo; the way price or transit are, so folding them into a single quality number would be misleading. Flood risk is a standalone layer you view on its own (and check per-address); the terrain basemap likewise.</div>
 
-  <h2><span class="n">07</span>Score an address</h2>
+  <h2><span class="n">08</span>Score an address</h2>
   <p>The <b>Score an address</b> box geocodes any Luxembourg address (via Nominatim / OpenStreetMap) and drops a draggable pin with its own scorecard, shown as an overlay on the pin rather than in the side panel. Unlike the map layers, which score whole communes and quartiers, the pin mixes two kinds of factor.</p>
   <h3>Recomputed at the exact point (address-level)</h3>
   <ul>
@@ -180,7 +189,7 @@
   <p>The connectivity bar blends the two: <code>connectivity = 0.6 &times; address walk-to-transit + 0.4 &times; area service level</code>, so a home far from a stop in a well-served commune and one beside a stop in a thin commune both read fairly. The combined score uses the same weight sliders as the map.</p>
   <p><b>Caveats:</b> distances are straight-line, not walking-route; the pin inherits its commune&rsquo;s price rather than a specific listing&rsquo;s rent; and the GTFS feed is the current summer schedule, so a few term-time school lines are understated.</p>
 
-  <h2><span class="n">08</span>Data vintage at a glance</h2>
+  <h2><span class="n">09</span>Data vintage at a glance</h2>
   <table class="datatable">
     <tr><th>Layer</th><th>Source</th><th>Vintage</th></tr>
     <tr><td class="lbl">Commune prices</td><td>STATEC / Observatoire de l'Habitat (via GitHub mirror)</td><td>2020&ndash;2021</td></tr>
@@ -192,12 +201,13 @@
     <tr><td class="lbl">Amenities (~7,700 POIs, 9 categories)</td><td>OpenStreetMap via Overpass API</td><td>Jul 2026</td></tr>
     <tr><td class="lbl">Safety (baseline)</td><td>Presumed safe unless documented (inverted model)</td><td>&mdash;</td></tr>
     <tr><td class="lbl">Safety (markdowns)</td><td>Luxembourg govt "Drogendësch 2.0" + Luxembourg press review</td><td>2024&ndash;2025</td></tr>
+    <tr><td class="lbl">Flood hazard (3 return periods)</td><td>HWGK maps, Administration de la gestion de l'eau (EU Floods Directive), data.public.lu</td><td>2021</td></tr>
     <tr><td class="lbl">Population / area</td><td>Wikipedia (STATEC-sourced)</td><td>2025&ndash;2026</td></tr>
     <tr><td class="lbl">Commune boundaries</td><td>OpenStreetMap mirror, manually merged</td><td>~2015 geometry, current names</td></tr>
     <tr><td class="lbl">Quartier boundaries</td><td>Voronoi tessellation (derived, not official)</td><td>n/a</td></tr>
   </table>
 
-  <h2><span class="n">09</span>Raw data</h2>
+  <h2><span class="n">10</span>Raw data</h2>
   <p>The underlying files this tool loads are in <code>/data</code> in the repository, if you want to inspect, verify, or reuse them directly:</p>
   <ul>
     <li><a href="data/communes.json">communes.json</a> — per-commune scores, prices, rail, and amenity data</li>
@@ -206,6 +216,7 @@
     <li><a href="data/quartiers_voronoi.geojson">quartiers_voronoi.geojson</a> — quartier Voronoi polygons</li>
     <li><a href="data/transit_stops.json">transit_stops.json</a> — ~2,600 GTFS stop points (coords, mode, departures/day) driving address-level transit access</li>
     <li><a href="data/amenities_poi.json">amenities_poi.json</a> — ~7,700 OSM POIs by category, driving address-level amenities</li>
+    <li><a href="data/flood.geojson">flood.geojson</a> — simplified flood-extent polygons (10-year / 100-year / extreme), WGS84</li>
   </ul>
 
   <footer>

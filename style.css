@@ -281,6 +281,18 @@
   .sw-tram{ background:#d9789f; }
   .sw-rail{ background:#6fa8c9; }
   .sw-street{ background:linear-gradient(90deg,#e9e3d6,#cdd7cf); }
+  .sw-altitude{ background:linear-gradient(90deg,#608c4a,#96a65a,#bea860,#a37a4e,#967864,#e8e4dc); }
+  .sw-flood{ background:linear-gradient(90deg,#1f4e9c,#3d7bd0,#6fa8dc); }
+
+  .alt-legend{ margin-top:6px; display:flex; flex-direction:column; gap:5px; }
+  .alt-bar{ background:linear-gradient(90deg,#608c4a,#96a65a,#bea860,#a37a4e,#967864,#e8e4dc); }
+
+  .flood-legend{ display:flex; align-items:center; gap:5px; margin:7px 2px 0; font-size:10px; color:var(--text-dimmer); }
+  .flood-legend .fb{ width:14px; height:10px; border-radius:2px; flex-shrink:0; }
+  .flood-legend .fbl{ margin-right:6px; }
+  .fb-10{ background:rgba(31,78,156,0.9); }
+  .fb-100{ background:rgba(61,123,208,0.75); }
+  .fb-ext{ background:rgba(111,168,220,0.55); }
 
   .amen-toggles{
     display:grid;

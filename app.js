@@ -10,6 +10,16 @@ var state = {
 };
 function slug(name){ return name.replace(/\s+/g,'_'); }
 
+// Merge precomputed flood-hazard exposure into the area records so the flood
+// layer, detail panel and address hook can read obj.score_flood / obj.flood_pct_*.
+// (Source: HWGK 2021 hazard maps, Administration de la gestion de l'eau.)
+(function mergeFlood(){
+  if(typeof FLOOD_SCORES==='undefined') return;
+  function apply(dict, rows){ for(var n in rows){ if(dict[n]){ for(var k in rows[n]) dict[n][k]=rows[n][k]; } } }
+  apply(COMMUNES,  FLOOD_SCORES.communes);
+  apply(QUARTIERS, FLOOD_SCORES.quartiers);
+})();
+
 // ---------- color scale ----------
 var STOPS = [
   [0.0,  [58,66,84]],
@@ -51,6 +61,7 @@ function scoreFor(obj,type,name,layer){
   if(layer==='connect') return obj.score_connect;
   if(layer==='amenity') return obj.score_amenity;
   if(layer==='safety') return getSafetyScore(type,name,obj);
+  if(layer==='flood') return obj.score_flood!=null ? obj.score_flood : 100;
   return combinedScore(obj,type,name);
 }
 
@@ -72,20 +83,92 @@ L.control.attribution({prefix:false}).addAttribution('Boundaries: government ope
 var streetTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   subdomains:'abcd', maxZoom:19, attribution:'© OpenStreetMap contributors · © CARTO'
 });
+
+// Continuous altitude basemap. Terrarium terrain-RGB tiles (AWS Open Data, free,
+// no key, CORS-enabled) encode real elevation in each pixel — they are not a
+// picture. We decode every pixel to metres and repaint it through a hypsometric
+// ramp (green lowlands -> brown uplands -> pale peaks) onto a per-tile canvas, so
+// the whole map shows true terrain at native resolution instead of one flat value
+// per polygon. Range is tuned to Luxembourg: ~130 m (Moselle) to ~560 m (Ösling).
+var ALT_STOPS = [
+  [120, [ 96,140, 74]],   // green  — lowlands
+  [210, [150,166, 90]],   // yellow-green
+  [290, [190,168, 96]],   // tan / gold
+  [370, [163,122, 78]],   // brown
+  [450, [150,120,100]],   // grey-brown
+  [565, [232,228,220]]    // near white — peaks
+];
+function elevToColor(e){
+  if(e<=ALT_STOPS[0][0]) return ALT_STOPS[0][1];
+  for(var i=0;i<ALT_STOPS.length-1;i++){
+    var a=ALT_STOPS[i], b=ALT_STOPS[i+1];
+    if(e>=a[0] && e<=b[0]){
+      var f=(e-a[0])/(b[0]-a[0]);
+      return [Math.round(a[1][0]+f*(b[1][0]-a[1][0])),
+              Math.round(a[1][1]+f*(b[1][1]-a[1][1])),
+              Math.round(a[1][2]+f*(b[1][2]-a[1][2]))];
+    }
+  }
+  return ALT_STOPS[ALT_STOPS.length-1][1];
+}
+var AltitudeLayer = L.GridLayer.extend({
+  createTile: function(coords, done){
+    var tile = document.createElement('canvas');
+    var size = this.getTileSize();
+    tile.width = size.x; tile.height = size.y;
+    var ctx = tile.getContext('2d');
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function(){
+      var off = document.createElement('canvas');
+      off.width = size.x; off.height = size.y;
+      var octx = off.getContext('2d');
+      octx.drawImage(img, 0, 0, size.x, size.y);
+      var src;
+      try { src = octx.getImageData(0, 0, size.x, size.y); }
+      catch(err){ done(err, tile); return; }           // tainted canvas / CORS
+      var out = ctx.createImageData(size.x, size.y);
+      var sd = src.data, od = out.data;
+      for(var i=0;i<sd.length;i+=4){
+        var e = (sd[i]*256 + sd[i+1] + sd[i+2]/256) - 32768;  // terrarium decode
+        var c = elevToColor(e);
+        od[i]=c[0]; od[i+1]=c[1]; od[i+2]=c[2]; od[i+3]=255;
+      }
+      ctx.putImageData(out, 0, 0);
+      done(null, tile);
+    };
+    img.onerror = function(err){ done(err, tile); };
+    img.src = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/'+coords.z+'/'+coords.x+'/'+coords.y+'.png';
+    return tile;
+  }
+});
+var altitudeTiles = new AltitudeLayer({
+  maxNativeZoom:15, maxZoom:19, tileSize:256,
+  attribution:'Elevation: Terrarium DEM · AWS Open Data'
+});
+
 var CHORO_OPACITY = 0.85;
 var BASEMAP_ON = false;
-function setBasemap(on){
-  BASEMAP_ON = !!on;
-  if(on){ streetTiles.addTo(map); CHORO_OPACITY = 0.42; }
-  else { map.removeLayer(streetTiles); CHORO_OPACITY = 0.85; }
+// kind: 'none' | 'street' | 'altitude'. Street and altitude are mutually
+// exclusive tile basemaps; either one dims the score choropleth so the map
+// beneath reads through (pair with clicking the active layer off for a clean view).
+function setBasemap(kind){
+  map.removeLayer(streetTiles);
+  map.removeLayer(altitudeTiles);
+  if(kind==='street') streetTiles.addTo(map);
+  else if(kind==='altitude') altitudeTiles.addTo(map);
+  BASEMAP_ON = (kind!=='none');
+  CHORO_OPACITY = BASEMAP_ON ? 0.42 : 0.85;
   communeLayer.setStyle(communeStyle);
   quartierLayer.setStyle(quartierStyle);
   // The context/city-boundary layers have opaque fills that would otherwise
-  // sit on top of the street tiles (tiles live in the low tilePane), hiding
-  // them and leaving only white slivers in the gaps between polygons. Drop
-  // their fills to transparent when the basemap is on so streets read through.
+  // sit on top of the tiles (tiles live in the low tilePane), hiding them and
+  // leaving only white slivers in the gaps between polygons. Drop their fills
+  // to transparent when a basemap is on so the tiles read through.
   contextLayer.setStyle(contextStyle);
   cityBoundaryLayer.setStyle(cityBoundaryStyle);
+  var leg = document.getElementById('altLegend');
+  if(leg) leg.style.display = (kind==='altitude') ? 'block' : 'none';
 }
 
 var communeLayer = L.geoJSON(COMMUNES_GEOJSON, {
@@ -141,19 +224,23 @@ var quartierLayer = L.geoJSON(QUARTIERS_GEOJSON, {
 // state.layer===null means no layer is selected: hide the score fills entirely
 // (the user clicked the active tab off) so the base map / boundaries show alone.
 function choroFillOpacity(){ return state.layer===null ? 0 : CHORO_OPACITY; }
+// With a fill on, the boundary is a dark separator (#12161d) between colours. With
+// the fill off, that same colour is the map background, so the outlines would vanish
+// — switch to a lighter slate so the districts stay visible on the bare dark canvas.
+function choroStroke(){ return state.layer===null ? '#46536a' : '#12161d'; }
 
 function quartierStyle(feature){
   var name = feature.properties.name;
   var obj = QUARTIERS[name];
   var s = obj ? scoreFor(obj,'quartier',name,state.layer) : 50;
-  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:choroFillOpacity()};
+  return {fillColor: scoreToColor(s), weight:1, color:choroStroke(), fillOpacity:choroFillOpacity()};
 }
 
 function communeStyle(feature){
   var name = feature.properties.name;
   var obj = COMMUNES[name];
   var s = obj ? scoreFor(obj,'commune',name,state.layer) : 50;
-  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:choroFillOpacity()};
+  return {fillColor: scoreToColor(s), weight:1, color:choroStroke(), fillOpacity:choroFillOpacity()};
 }
 
 function fitCountry(){
@@ -163,6 +250,46 @@ function fitCountry(){
 function fitCity(){
   try{ map.fitBounds(cityBoundaryLayer.getBounds(), {padding:[18,18]}); }
   catch(e){ map.setView([49.612,6.128], 13); }
+}
+
+// ---------- flood-hazard overlay ----------
+// Real flood-extent polygons (HWGK 2021, Administration de la gestion de l'eau,
+// EU Floods Directive) for three return periods, drawn as translucent blue bands.
+// Nested panes put the frequent (10-yr) zone on top of the medium (100-yr) on top
+// of the extreme, so the most-often-flooded ground reads darkest. Non-interactive
+// so clicks fall through to the area polygons beneath.
+var FLOOD_BAND_STYLE = {
+  ext:   {color:'#6fa8dc', fill:'#6fa8dc', fillOpacity:0.18, weight:0,   z:404, label:'Extreme'},
+  hq100: {color:'#3d7bd0', fill:'#3d7bd0', fillOpacity:0.30, weight:0,   z:405, label:'100-year'},
+  hq10:  {color:'#12325f', fill:'#1f4e9c', fillOpacity:0.48, weight:0.5, z:406, label:'10-year'}
+};
+var floodOverlay = (function buildFloodOverlay(){
+  var group = L.layerGroup();
+  if(typeof FLOOD_ZONES==='undefined') return group;
+  ['ext','hq100','hq10'].forEach(function(band){          // draw largest→smallest
+    var st = FLOOD_BAND_STYLE[band], pane = 'flood_'+band;
+    map.createPane(pane); map.getPane(pane).style.zIndex = st.z;
+    var feats = FLOOD_ZONES.features.filter(function(f){ return f.properties.band===band; });
+    L.geoJSON({type:'FeatureCollection', features:feats}, {
+      pane:pane, interactive:false,
+      style:function(){ return {color:st.color, weight:st.weight, fillColor:st.fill,
+        fillOpacity:st.fillOpacity, opacity:0.6}; }
+    }).addTo(group);
+  });
+  return group;
+})();
+// Highest-severity flood band containing a point (or null). Bands are nested, so we
+// test the most frequent first. Uses the same ray-casting as the address locator.
+function floodBandAt(lat,lon){
+  if(typeof FLOOD_ZONES==='undefined') return null;
+  var order=['hq10','hq100','ext'];
+  for(var b=0;b<order.length;b++){
+    var feats=FLOOD_ZONES.features;
+    for(var i=0;i<feats.length;i++){
+      if(feats[i].properties.band===order[b] && ptInFeature(lat,lon,feats[i])) return order[b];
+    }
+  }
+  return null;
 }
 
 // ---------- transit overlays ----------
@@ -268,7 +395,26 @@ AMEN_CATS.forEach(function(c){
 });
 
 var streetToggle = document.getElementById('streetToggle');
-if(streetToggle) streetToggle.addEventListener('change', function(){ setBasemap(this.checked); });
+var altToggle = document.getElementById('altToggle');
+function syncBasemap(){
+  if(altToggle && altToggle.checked) setBasemap('altitude');
+  else if(streetToggle && streetToggle.checked) setBasemap('street');
+  else setBasemap('none');
+}
+if(streetToggle) streetToggle.addEventListener('change', function(){
+  if(this.checked && altToggle) altToggle.checked = false;   // mutually exclusive
+  syncBasemap();
+});
+if(altToggle) altToggle.addEventListener('change', function(){
+  if(this.checked && streetToggle) streetToggle.checked = false;
+  syncBasemap();
+});
+
+var floodToggle = document.getElementById('floodToggle');
+if(floodToggle) floodToggle.addEventListener('change', function(){
+  if(this.checked) floodOverlay.addTo(map);
+  else map.removeLayer(floodOverlay);
+});
 
 communeLayer.addTo(map);
 fitCountry();
@@ -351,7 +497,8 @@ var LAYER_LABELS = {
   afford:'Cheapest areas',
   connect:'Best connected',
   amenity:'Most amenities (real OSM POIs)',
-  safety:'Safest (fewest documented issues)'
+  safety:'Safest (fewest documented issues)',
+  flood:'Driest (least 100-year flood exposure)'
 };
 
 function renderTopList(){
@@ -429,6 +576,13 @@ function renderDetail(){
       row('Transit service', obj.transit_dep_day.toLocaleString('en-US')+' departures/day \u00b7 '+obj.transit_served_stops+' stops') +
       row('By mode (dep/day)', modeBits);
   }
+  var floodRow = '';
+  if(obj.flood_pct_hq100!=null){
+    var fmtPct = function(p){ return p<0.05 ? '~0%' : p.toFixed(1)+'%'; };
+    floodRow =
+      row('Flood zone (100-yr)', fmtPct(obj.flood_pct_hq100)+' of area') +
+      row('Flood 10-yr \u00b7 extreme', fmtPct(obj.flood_pct_hq10)+' \u00b7 '+fmtPct(obj.flood_pct_ext));
+  }
   if(type==='commune'){
     subLine = obj.canton + ' canton \u00b7 ' + obj.dist_to_capital_km + ' km from Luxembourg City centre';
     statsHtml =
@@ -438,6 +592,7 @@ function renderDetail(){
       row('Price source', obj.price_source + (obj.price_estimated?' (canton avg. fallback)':'')) +
       amenityRow +
       transitRow +
+      floodRow +
       row('Rail station', obj.has_rail_station ? 'yes' : 'no') +
       (obj.has_rail_station ? row('Rail riders (2022)', obj.rail_passengers_2022.toLocaleString('en-US')+'/yr') : '');
   } else {
@@ -449,6 +604,7 @@ function renderDetail(){
       row('Price note', obj.price_note) +
       amenityRow +
       transitRow +
+      floodRow +
       (obj.rail_passengers_2022 ? row('Rail riders (2022)', obj.rail_passengers_2022.toLocaleString('en-US')+'/yr') : '');
   }
 
@@ -459,6 +615,7 @@ function renderDetail(){
     scorebar('Connect.', obj.score_connect) +
     scorebar('Amenities', obj.score_amenity) +
     scorebar('Safety', effSafety) +
+    (obj.score_flood!=null ? scorebar('Flood-safe', obj.score_flood) : '') +
     scorebar('Combined', combined);
 
   var documented = obj.safety_basis === 'documented';
@@ -504,6 +661,7 @@ document.getElementById('footNotes').innerHTML =
   'Connectivity: real public-transport service level from Luxembourg\u2019s national GTFS feed (data.public.lu). Every scheduled departure on a representative weekday (Wed 22 Jul 2026) was counted at each stop across all modes \u2014 RGTR + AVL + TICE bus, Luxtram, and CFL rail \u2014 and every stop assigned to its commune/quartier by point-in-polygon against the boundary layers (~360k departures nationally). The score is log-scaled departures/day blended 65/35 with distance-to-capital, so heavily-bused suburbs no longer look disconnected just for lacking a train station, and a rural halt with a handful of daily trains no longer outranks them. Caveat: the current feed covers the summer-holiday period, so school-only lines and some reduced summer schedules understate term-time service in a few rural communes. ' +
   'Amenities: a real census of ~7,700 points of interest from OpenStreetMap (via the Overpass API), replacing the old sampled/estimated model. Every POI is placed by its true coordinates into the correct commune or quartier by point-in-polygon, and sorted into nine categories \u2014 groceries/food shops, restaurants/caf\u00e9s/bars, retail shops, healthcare, pharmacies, schools/childcare, banks/ATMs, gas stations, and parks/sports. The score is a weighted blend of the (log-scaled) count in each category, min-max normalised within each layer, so amenity-dense towns rank high and thin rural communes rank low on real counts rather than a density guess. Each category can be toggled on the map as its own point layer. Caveats: OSM coverage is community-maintained (very good in Luxembourg but not perfect), and \u201cleisure\u201d is deliberately limited to real public parks/sports facilities \u2014 the thousands of private gardens and backyard pools OSM also tags as leisure are excluded. ' +
   'Safety/reputation: Luxembourg publishes no crime statistics below the national level (the police reports are country-wide totals plus an org-chart of 4 police regions \u2014 no per-commune or per-region figures exist), and it is one of the safest countries in the world. So instead of inventing a crime rate everywhere, this layer inverts the problem: every commune and quartier is treated as generally safe (baseline 90/100) unless a specific problem is documented in official sources or the press, in which case it is marked down. Documented markdowns (2024\u201325 review): in the capital, the Gare quartier (22) \u2014 the government\u2019s \u201cDrogend\u00ebsch 2.0\u201d action plan (May 2025) over open drug dealing, homelessness and prostitution around Rue de Strasbourg / Rue Joseph Junck \u2014 plus Hollerich (45) and North/South Bonnevoie (48), the rest of that enforcement zone (35% of all city police patrols); at commune level, Luxembourg (68, hosts those hotspots but is mostly safe), Esch-sur-Alzette (58, documented insecurity and Brill-quarter drug trafficking) and Ettelbruck (72, commissariat made 24/7 under Drogend\u00ebsch). Everywhere else stays at the safe baseline. This means the layer is deliberately near-flat \u2014 that reflects reality \u2014 and it errs toward calling an area safe rather than fabricating suspicion. It is a documented-incident model, not a measured crime rate, so treat a low score as \u201cthere is a known, reported problem here,\u201d not as a precise ranking. ' +
+  'Flood risk: the official flood-hazard maps (HWGK 2021) from the Administration de la gestion de l\u2019eau, published under the EU Floods Directive (data.public.lu), for three return periods \u2014 frequent (10-year), medium (100-year) and extreme. Each area\u2019s exposure is the share of its footprint inside the 100-year zone, computed by intersecting the real hazard polygons with the commune/quartier boundaries (in Luxembourg\u2019s metric CRS, EPSG:2169); the layer score is that exposure inverted and min-max normalised within each level, so gold = driest. The Flood-zones overlay draws the real extent of all three bands (darker = floods more often), and the address pin reports which band, if any, contains the exact point. Caveats: the score aggregates to the whole area, so a mostly-dry commune with one flood-prone valley strip still scores high \u2014 use the overlay and the pin for the local truth; the overlay polygons are simplified (~16 m) to keep the app light, so a pin within a few metres of a zone edge may read either way; and the maps cover watercourses assessed under the directive, not pluvial/flash-flood surface runoff. ' +
   'Country boundaries are simplified and merged to match the current 100 communes. City quartier boundaries are not the official VDL polygons \u2014 that data exists but wasn\u2019t retrievable from this tool\u2019s sandbox \u2014 they\u2019re a Voronoi tessellation built from each quartier\u2019s real centre point and clipped to the real city outline, so borders are approximate even though the overall shape and coverage are accurate. ' +
   'Transit overlays: three independently-toggleable layers \u2014 bus, tram, and rail \u2014 drawn from real GTFS route geometry (each shape Douglas-Peucker-simplified and de-duplicated into a network of polylines). Cross-border tails toward Trier, Thionville and Arlon are real, not artefacts. Rail additionally shows station markers placed at their real GTFS coordinates \u2014 so they sit on the line \u2014 and sized by scheduled trains/day at each station. The same GTFS data drives the connectivity score above (via departures/day). ' +
   'Score an address: geocoding is Nominatim / OpenStreetMap (Luxembourg only). The dropped pin gets its own scorecard mixing two kinds of factor. Address-level, recomputed at the exact point: transit access — every one of ~2,600 real GTFS stops with service on the sample weekday, its scheduled departures/day discounted by walking distance (weight halves roughly every 280 m) and summed on a saturating 0–100 scale, with the single nearest stop and nearest rail station shown as concrete facts; and amenities — for each of the nine OSM categories, a blend of how many lie within an 800 m walk (log-scaled, capped at a POI-dense urban level) and how far the nearest one is. Commune/quartier-level, inherited because no finer data exists: affordability (price/m²), safety/reputation, and the area’s overall transit service level. The connectivity bar is 60% the address’s own walk-to-transit and 40% the area’s overall service, so a home far from a stop in a well-served commune and one next to a stop in a thin commune both read fairly. The combined score uses the same weight sliders as the map. Caveats: distances are straight-line, not walking-route; the pin inherits its commune’s price rather than the listing’s actual rent; and the GTFS feed is the current summer schedule, so a few term-time school lines are understated.';
@@ -598,7 +756,7 @@ function computeAddress(lat,lon){
   // connectivity factor = 60% this address's walk-to-transit + 40% the area's overall service
   var connect = commuteConnect!=null ? Math.round(0.6*ta.score + 0.4*commuteConnect) : ta.score;
   return { lat:lat, lon:lon, loc:loc, area:area,
-           transit:ta, amenity:am,
+           transit:ta, amenity:am, flood:floodBandAt(lat,lon),
            afford:afford, safety:safety, connect:connect, communeConnect:commuteConnect };
 }
 function addressCombined(r){
@@ -636,8 +794,18 @@ function addressPopupHTML(r){
     : '—';
   var railFact = ta.nrail ? fmtDist(ta.nrdist)+' &middot; '+ta.nrail[3]+' trains/day' : 'none nearby';
   function amFact(c){ var o=ac[c]; return o.cnt+' &middot; nearest '+(o.near<800?Math.round(o.near)+' m':'>800 m'); }
+  var FLOOD_FACT = {
+    hq10:  ['floods often (10-year zone)', 'var(--red-flag)'],
+    hq100: ['in the 100-year flood zone', 'var(--red-flag)'],
+    ext:   ['extreme-flood zone only', '#e0a94a'],
+    none:  ['not in a mapped flood zone', 'var(--gold-bright)']
+  };
+  var ff = FLOOD_FACT[r.flood || 'none'];
+  var floodFact = '<div class="pop-fact"><span class="fl">Flood risk</span>'+
+    '<span class="fv" style="color:'+ff[1]+';font-weight:600;">'+ff[0]+'</span></div>';
 
   var facts=
+    floodFact+
     '<div class="pop-fact"><span class="fl">Nearest stop</span><span class="fv">'+nearStop+'</span></div>'+
     '<div class="pop-fact"><span class="fl">Nearest rail</span><span class="fv">'+railFact+'</span></div>'+
     '<div class="pop-fact"><span class="fl">Groceries ≤800m</span><span class="fv">'+amFact('grocery')+'</span></div>'+
