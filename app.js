@@ -291,6 +291,45 @@ function floodBandAt(lat,lon){
   }
   return null;
 }
+// Metres from a point to the nearest edge of ANY flood band. Because the bands are
+// nested, the outermost (extreme) edge is what a point outside them is closest to;
+// we scan every band's rings to be robust to simplification. Used to warn about
+// buildings that sit just outside the mapped extent — a binary in/out test would
+// call a house 16 m from the river identical to one on a hilltop. Distances use a
+// local equirectangular projection (accurate to well under a metre at this scale).
+function distToFloodEdge(lat,lon){
+  if(typeof FLOOD_ZONES==='undefined') return Infinity;
+  var kx = Math.cos(lat*Math.PI/180)*111320, ky = 110540, best = Infinity;
+  function segM(a,b){
+    var ax=(a[0]-lon)*kx, ay=(a[1]-lat)*ky, bx=(b[0]-lon)*kx, by=(b[1]-lat)*ky;
+    var dx=bx-ax, dy=by-ay, len=dx*dx+dy*dy;
+    var t = len ? Math.max(0, Math.min(1, -(ax*dx+ay*dy)/len)) : 0;
+    var cx=ax+t*dx, cy=ay+t*dy;
+    return Math.sqrt(cx*cx+cy*cy);
+  }
+  var feats = FLOOD_ZONES.features;
+  for(var f=0;f<feats.length;f++){
+    var polys = feats[f].geometry.coordinates;      // MultiPolygon
+    for(var p=0;p<polys.length;p++){
+      var rings = polys[p];
+      for(var r=0;r<rings.length;r++){
+        var ring = rings[r];
+        for(var i=0;i<ring.length-1;i++){
+          var d = segM(ring[i], ring[i+1]);
+          if(d<best){ best=d; if(best<1) return 0; }
+        }
+      }
+    }
+  }
+  return best;
+}
+// Flood assessment for an address: which band it's inside (if any), else how many
+// metres to the nearest zone edge, so "just outside" reads differently from "far".
+function floodInfo(lat,lon){
+  var band = floodBandAt(lat,lon);
+  if(band) return {band:band, dist:0};
+  return {band:null, dist:distToFloodEdge(lat,lon)};
+}
 
 // ---------- transit overlays ----------
 // Real route geometry from Luxembourg's national GTFS feed (data.public.lu):
@@ -756,7 +795,7 @@ function computeAddress(lat,lon){
   // connectivity factor = 60% this address's walk-to-transit + 40% the area's overall service
   var connect = commuteConnect!=null ? Math.round(0.6*ta.score + 0.4*commuteConnect) : ta.score;
   return { lat:lat, lon:lon, loc:loc, area:area,
-           transit:ta, amenity:am, flood:floodBandAt(lat,lon),
+           transit:ta, amenity:am, flood:floodInfo(lat,lon),
            afford:afford, safety:safety, connect:connect, communeConnect:commuteConnect };
 }
 function addressCombined(r){
@@ -794,13 +833,16 @@ function addressPopupHTML(r){
     : '—';
   var railFact = ta.nrail ? fmtDist(ta.nrdist)+' &middot; '+ta.nrail[3]+' trains/day' : 'none nearby';
   function amFact(c){ var o=ac[c]; return o.cnt+' &middot; nearest '+(o.near<800?Math.round(o.near)+' m':'>800 m'); }
-  var FLOOD_FACT = {
-    hq10:  ['floods often (10-year zone)', 'var(--red-flag)'],
-    hq100: ['in the 100-year flood zone', 'var(--red-flag)'],
-    ext:   ['extreme-flood zone only', '#e0a94a'],
-    none:  ['not in a mapped flood zone', 'var(--gold-bright)']
-  };
-  var ff = FLOOD_FACT[r.flood || 'none'];
+  // Inside a band → name it; outside but within 60 m of the mapped extent → warn it
+  // borders one (the ~16 m overlay simplification makes closer calls unreliable, and
+  // flood risk spills past the exact line); comfortably clear → reassure.
+  var RED='var(--red-flag)', AMBER='#e0a94a', GOLD='var(--gold-bright)';
+  var IN = { hq10:['in the 10-year flood zone',RED], hq100:['in the 100-year flood zone',RED],
+             ext:['in the extreme-flood zone',AMBER] };
+  var ff = r.flood.band ? IN[r.flood.band]
+    : (r.flood.dist <= 60 ? ['borders a flood zone (~'+Math.round(r.flood.dist)+' m)', AMBER]
+    : (r.flood.dist <= 300 ? ['not in a zone · nearest ~'+Math.round(r.flood.dist)+' m', GOLD]
+    : ['not in a mapped flood zone', GOLD]));
   var floodFact = '<div class="pop-fact"><span class="fl">Flood risk</span>'+
     '<span class="fv" style="color:'+ff[1]+';font-weight:600;">'+ff[0]+'</span></div>';
 
