@@ -73,11 +73,19 @@ var streetTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voy
   subdomains:'abcd', maxZoom:19, attribution:'© OpenStreetMap contributors · © CARTO'
 });
 var CHORO_OPACITY = 0.85;
+var BASEMAP_ON = false;
 function setBasemap(on){
+  BASEMAP_ON = !!on;
   if(on){ streetTiles.addTo(map); CHORO_OPACITY = 0.42; }
   else { map.removeLayer(streetTiles); CHORO_OPACITY = 0.85; }
   communeLayer.setStyle(communeStyle);
   quartierLayer.setStyle(quartierStyle);
+  // The context/city-boundary layers have opaque fills that would otherwise
+  // sit on top of the street tiles (tiles live in the low tilePane), hiding
+  // them and leaving only white slivers in the gaps between polygons. Drop
+  // their fills to transparent when the basemap is on so streets read through.
+  contextLayer.setStyle(contextStyle);
+  cityBoundaryLayer.setStyle(cityBoundaryStyle);
 }
 
 var communeLayer = L.geoJSON(COMMUNES_GEOJSON, {
@@ -93,8 +101,11 @@ var communeLayer = L.geoJSON(COMMUNES_GEOJSON, {
 
 // Faint national outline shown behind the city view so the quartier dots
 // have geographic context (all communes, low-contrast, non-interactive).
+function contextStyle(){
+  return {fillColor:'#1a2029', fillOpacity: BASEMAP_ON ? 0 : 1, weight:0.6, color:'#262e38'};
+}
 var contextLayer = L.geoJSON(COMMUNES_GEOJSON, {
-  style: function(){ return {fillColor:'#1a2029', fillOpacity:1, weight:0.6, color:'#262e38'}; },
+  style: contextStyle,
   interactive:false
 });
 
@@ -104,8 +115,11 @@ var cityFeature = null;
 for(var i=0;i<COMMUNES_GEOJSON.features.length;i++){
   if(COMMUNES_GEOJSON.features[i].properties.name==='Luxembourg'){ cityFeature = COMMUNES_GEOJSON.features[i]; break; }
 }
+function cityBoundaryStyle(){
+  return {fillColor:'#20293a', fillOpacity: BASEMAP_ON ? 0 : 1, weight:1.5, color:'#46536a'};
+}
 var cityBoundaryLayer = L.geoJSON(cityFeature, {
-  style: function(){ return {fillColor:'#20293a', fillOpacity:1, weight:1.5, color:'#46536a'}; },
+  style: cityBoundaryStyle,
   interactive:false
 });
 
@@ -124,18 +138,22 @@ var quartierLayer = L.geoJSON(QUARTIERS_GEOJSON, {
     layer.on('mouseout', function(e){ quartierLayer.resetStyle(e.target); });
   }
 });
+// state.layer===null means no layer is selected: hide the score fills entirely
+// (the user clicked the active tab off) so the base map / boundaries show alone.
+function choroFillOpacity(){ return state.layer===null ? 0 : CHORO_OPACITY; }
+
 function quartierStyle(feature){
   var name = feature.properties.name;
   var obj = QUARTIERS[name];
   var s = obj ? scoreFor(obj,'quartier',name,state.layer) : 50;
-  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:CHORO_OPACITY};
+  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:choroFillOpacity()};
 }
 
 function communeStyle(feature){
   var name = feature.properties.name;
   var obj = COMMUNES[name];
   var s = obj ? scoreFor(obj,'commune',name,state.layer) : 50;
-  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:CHORO_OPACITY};
+  return {fillColor: scoreToColor(s), weight:1, color:'#12161d', fillOpacity:choroFillOpacity()};
 }
 
 function fitCountry(){
@@ -294,9 +312,17 @@ btnCity.addEventListener('click', function(){
 var layerTabs = document.getElementById('layerTabs');
 layerTabs.querySelectorAll('button').forEach(function(btn){
   btn.addEventListener('click', function(){
-    layerTabs.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
-    btn.classList.add('active');
-    state.layer = btn.getAttribute('data-layer');
+    var val = btn.getAttribute('data-layer');
+    // Clicking the already-active layer toggles it off: no layer selected, so
+    // the score fills disappear and the base map shows through cleanly.
+    if(state.layer===val){
+      btn.classList.remove('active');
+      state.layer = null;
+    } else {
+      layerTabs.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      state.layer = val;
+    }
     weightsBlock.style.display = state.layer==='combined' ? 'block' : 'none';
     renderAll();
   });
